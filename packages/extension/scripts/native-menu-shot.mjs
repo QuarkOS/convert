@@ -6,7 +6,7 @@ import { extname, join, normalize, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { existsSync, readdirSync, rmSync } from "node:fs";
 import puppeteer from "puppeteer-core";
-import { FirefoxPack } from "./firefox-pack.mjs";
+import { FirefoxPack } from "./firefox-pack.ts";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const dist = resolve(root, "dist");

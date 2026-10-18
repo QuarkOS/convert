@@ -3,7 +3,7 @@ import { mkdtemp, readFile, writeFile, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { FirefoxPack } from "../scripts/firefox-pack.mjs";
+import { FirefoxPack } from "../scripts/firefox-pack.ts";
 
 test("firefox pack replaces the service worker with background scripts", async () => {
   const dir = await mkdtemp(path.join(tmpdir(), "convert-ff-"));

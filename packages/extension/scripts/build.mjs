@@ -3,7 +3,7 @@ import { cp, mkdir, rm } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as esbuild from "esbuild";
-import { FirefoxPack } from "./firefox-pack.mjs";
+import { FirefoxPack } from "./firefox-pack.ts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const coreEntry = resolve(root, "../core/src/index.ts");
