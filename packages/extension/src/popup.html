@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Convert</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="top">
+      <h1>Convert</h1>
+      <p>Files stay on this device.</p>
+    </header>
+    <label class="switch">
+      <input id="global-enabled" type="checkbox" checked />
+      <span>Offer a conversion when a site rejects a file</span>
+    </label>
+    <label class="switch" id="site-row">
+      <input id="site-enabled" type="checkbox" checked />
+      <span id="site-label">Offer on this site</span>
+    </label>
+    <label id="drop" class="drop">
+      <input id="file" type="file" />
+      <span id="prompt">Drop a file, or choose one.</span>
+    </label>
+    <p id="filename"></p>
+    <div id="targets" class="targets"></div>
+    <p id="status" role="status"></p>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Client upload</title>
+    <style>
+      body { margin: 0; background: #efeae2; color: #1a1916; font: 16px/1.45 "Segoe UI", system-ui, sans-serif; }
+      main { max-width: 440px; margin: 48px auto; padding: 24px; background: white; border-radius: 16px; }
+      h1 { margin: 0 0 8px; font-size: 24px; }
+      label { display: block; margin: 16px 0 6px; font-weight: 600; }
+      #alert { min-height: 1.4em; color: #8d2d2d; font-weight: 600; }
+      #status { min-height: 1.4em; color: #0f6b4c; font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Client upload</h1>
+      <form id="upload-form">
+        <label for="upload">Reference image</label>
+        <input id="upload" name="upload" type="file" />
+        <p><button id="sample-webp" type="button">Use the sample WebP</button></p>
+        <p id="alert" role="alert"></p>
+        <p id="status" role="status"></p>
+      </form>
+    </main>
+    <script>
+      document.getElementById("sample-webp").addEventListener("click", async () => {
+        const response = await fetch("/images/red.webp");
+        const blob = await response.blob();
+        const file = new File([blob], "red.webp", { type: "image/webp" });
+        const transfer = new DataTransfer();
+        transfer.items.add(file);
+        const input = document.getElementById("upload");
+        input.files = transfer.files;
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      document.getElementById("upload").addEventListener("change", () => {
+        const input = document.getElementById("upload");
+        const file = input.files && input.files[0];
+        const alert = document.getElementById("alert");
+        const status = document.getElementById("status");
+        if (!file) return;
+        const ok = /\.(jpe?g|png)$/i.test(file.name);
+        if (!ok) {
+          alert.textContent = "Unsupported file type. Use .jpg or .png.";
+          status.textContent = "";
+          return;
+        }
+        alert.textContent = "";
+        status.textContent = "Accepted " + file.name + " " + file.type;
+      });
+    </script>
+  </body>
+</html>
