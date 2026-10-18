@@ -20,17 +20,14 @@ function Query-Text([string]$command) {
 }
 
 class LoopbackSession {
-  static [string] Connect([string]$user, [string]$password) {
+  static [string] Connect([string]$user, [string]$password, [string]$temp, [string]$mstsc) {
     New-Item -Path "HKCU:\Software\Microsoft\Terminal Server Client" -Force | Out-Null
     New-ItemProperty -Path "HKCU:\Software\Microsoft\Terminal Server Client" -Name "AuthenticationLevelOverride" -Value 0 -PropertyType DWord -Force | Out-Null
-    $rdp = Join-Path $env:TEMP "convert-loopback.rdp"
+    $rdp = Join-Path $temp "convert-loopback.rdp"
     $body = "full address:s:127.0.0.1`r`nusername:s:$user`r`nprompt for credentials:i:0`r`nauthentication level:i:0`r`n"
     Set-Content -Path $rdp -Encoding ASCII -Value $body
-    $pref = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
     & cmdkey.exe /generic:TERMSRV/127.0.0.1 /user:$user /pass:$password | Out-Null
-    $proc = Start-Process -FilePath "$env:SystemRoot\System32\mstsc.exe" -ArgumentList "`"$rdp`"" -PassThru
-    $ErrorActionPreference = $pref
+    $proc = Start-Process -FilePath $mstsc -ArgumentList $rdp -PassThru
     return "mstsc.exe /v:127.0.0.1 pid=$($proc.Id)"
   }
 }
@@ -85,7 +82,7 @@ Log "TASK_REGISTERED"
 
 Log "ATTEMPT1 local mstsc loopback to 127.0.0.1"
 try {
-  Log ([LoopbackSession]::Connect("convertshot", $pass))
+  Log ([LoopbackSession]::Connect("convertshot", $pass, $env:TEMP, "$env:SystemRoot\System32\mstsc.exe"))
 } catch {
   Log "ATTEMPT1_FAIL $($_.Exception.Message)"
 }
