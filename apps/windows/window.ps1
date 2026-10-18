@@ -1,0 +1,59 @@
+$ErrorActionPreference = "Stop"
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+$node = (Get-Command node -ErrorAction SilentlyContinue).Source
+if (-not $node) { throw "node is not on PATH" }
+$hostScript = Join-Path $here "src\host.ts"
+$files = @($args | Where-Object { $_ -and (Test-Path -LiteralPath $_) })
+
+$form = New-Object System.Windows.Forms.Form
+$form.Text = "Convert"
+$form.ClientSize = New-Object System.Drawing.Size(420, 280)
+$form.StartPosition = "CenterScreen"
+$form.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+
+if ($files.Count -eq 0) {
+  $empty = New-Object System.Windows.Forms.Label
+  $empty.Text = "No file is selected."
+  $empty.AutoSize = $true
+  $empty.Location = New-Object System.Drawing.Point(24, 28)
+  $form.Controls.Add($empty)
+  [void]$form.ShowDialog()
+  exit 0
+}
+
+$list = New-Object System.Windows.Forms.ListBox
+$list.Location = New-Object System.Drawing.Point(24, 24)
+$list.Size = New-Object System.Drawing.Size(372, 120)
+foreach ($file in $files) { [void]$list.Items.Add([IO.Path]::GetFileName($file)) }
+$form.Controls.Add($list)
+
+$targetsJson = & $node --disable-warning=ExperimentalWarning --experimental-strip-types $hostScript --targets @files
+$targets = @($targetsJson | ConvertFrom-Json)
+$picker = New-Object System.Windows.Forms.ComboBox
+$picker.Location = New-Object System.Drawing.Point(24, 160)
+$picker.Size = New-Object System.Drawing.Size(160, 28)
+$picker.DropDownStyle = "DropDownList"
+foreach ($target in $targets) { [void]$picker.Items.Add(".$target") }
+if ($picker.Items.Count -gt 0) { $picker.SelectedIndex = 0 }
+$form.Controls.Add($picker)
+
+$status = New-Object System.Windows.Forms.Label
+$status.AutoSize = $true
+$status.Location = New-Object System.Drawing.Point(24, 220)
+if ($picker.Items.Count -eq 0) { $status.Text = "These files have no shared conversion." }
+$form.Controls.Add($status)
+
+$button = New-Object System.Windows.Forms.Button
+$button.Text = "Convert"
+$button.Location = New-Object System.Drawing.Point(200, 158)
+$button.Enabled = $picker.Items.Count -gt 0
+$button.Add_Click({
+  $choice = $picker.SelectedItem.ToString().TrimStart(".")
+  $output = & $node --disable-warning=ExperimentalWarning --experimental-strip-types $hostScript --to $choice @files 2>&1
+  $status.Text = ($output | Select-Object -Last 4) -join " "
+})
+$form.Controls.Add($button)
+[void]$form.ShowDialog()

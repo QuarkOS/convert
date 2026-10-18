@@ -1,0 +1,19 @@
+{
+  "name": "@convert/windows",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-strip-types --test --test-timeout 60000 test/*.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "menu": "node --experimental-strip-types src/host.ts --menu"
+  },
+  "dependencies": {
+    "@convert/core": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.3",
+    "typescript": "5.8.3"
+  }
+}

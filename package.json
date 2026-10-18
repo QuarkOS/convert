@@ -2,12 +2,13 @@
   "name": "convert",
   "private": true,
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
-    "test": "npm test -w @convert/core",
-    "typecheck": "npm run typecheck -w @convert/core",
-    "lint": "npm run lint -w @convert/core",
+    "test": "npm test -w @convert/core && npm test -w @convert/windows",
+    "typecheck": "npm run typecheck -w @convert/core && npm run typecheck -w @convert/windows",
+    "lint": "npm run lint -w @convert/core && npm run lint -w @convert/windows",
     "fixtures": "npm run fixtures -w @convert/core",
     "matrix": "npm run matrix -w @convert/core"
   },

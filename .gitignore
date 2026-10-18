@@ -4,4 +4,6 @@ dist/
 *.log
 .DS_Store
 apps/windows/build/
+/tools/
+/proof-out/
 packages/extension/dist/

@@ -2,7 +2,7 @@
 
 Convert turns a file you already have into another type a program will accept. The interaction is a right-click menu, Convert to, that lists only the types this file can become.
 
-This repository holds the shared conversion core. A browser extension and a Windows app sit on later branches and call the same graph.
+This repository holds the shared conversion core and the Windows app. Both call the same graph. The browser extension lives on its own branch.
 
 ## Run the tests
 
@@ -20,3 +20,19 @@ Fixture files live under `packages/core/fixtures`. `npm run fixtures -w @convert
 ## Layout
 
 `packages/core` is the library. `FormatGraph` is the list of legal conversions. `ConversionJob` walks a path, including a chain when no engine converts the pair in one step. Node hosts load engines from `@convert/core/node`.
+
+## Windows
+
+`apps/windows` is the desktop host. It uses `NodeEngines.bundled()`, so pandoc is not required. File Explorer gets a per-user cascade named Convert to. Each item is a target the graph allows for that extension, including aliases such as `.jpeg`.
+
+On Windows, with Node.js 22 on `PATH`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File apps/windows/register-menu.ps1
+node --experimental-strip-types apps/windows/src/host.ts --to jpg C:\path\photo.png
+powershell -ExecutionPolicy Bypass -File apps/windows/window.ps1 C:\path\a.png C:\path\b.png
+```
+
+The first command writes `HKCU\Software\Classes\SystemFileAssociations` verbs. On Windows 11 those verbs show in the classic menu, under Show more options. The window converts every file you pass to one shared target, and it says "No file is selected." when the path list is empty.
+
+`apps/windows/AppxManifest.xml` is the Store identity (`Quack.Convert`, `0.1.0.0`). The listing draft is `docs/store-listings/windows.md`. This repo does not submit the package. `apps/windows/launcher/Convert.cs` is a small full-trust launcher for a later MSIX layout. `apps/windows/prove.ps1` is the check that runs on a Windows 11 machine: install Node, run the tests, register the menu, convert two files, and try to photograph the Explorer menu.
