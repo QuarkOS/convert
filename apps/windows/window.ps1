@@ -31,7 +31,9 @@ foreach ($file in $files) { [void]$list.Items.Add([IO.Path]::GetFileName($file))
 $form.Controls.Add($list)
 
 $targetsJson = & $node --disable-warning=ExperimentalWarning --experimental-strip-types $hostScript --targets @files
-$targets = @($targetsJson | ConvertFrom-Json)
+Add-Type -AssemblyName System.Web.Extensions
+$serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
+$targets = $serializer.DeserializeObject([string]$targetsJson)
 $picker = New-Object System.Windows.Forms.ComboBox
 $picker.Location = New-Object System.Drawing.Point(24, 160)
 $picker.Size = New-Object System.Drawing.Size(160, 28)

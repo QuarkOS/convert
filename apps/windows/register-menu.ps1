@@ -4,16 +4,19 @@ $node = (Get-Command node -ErrorAction SilentlyContinue).Source
 if (-not $node) { throw "node is not on PATH" }
 $hostScript = Join-Path $here "src\host.ts"
 $json = & $node --disable-warning=ExperimentalWarning --experimental-strip-types $hostScript --menu
-$entries = @($json | ConvertFrom-Json)
+Add-Type -AssemblyName System.Web.Extensions
+$serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
+$serializer.MaxJsonLength = 67108864
+$entries = $serializer.DeserializeObject([string]$json)
 foreach ($entry in $entries) {
-  $names = @($entry.extensions)
-  if ($names.Count -eq 0) { $names = @($entry.extension) }
+  $names = $entry["extensions"]
+  if ($null -eq $names -or $names.Count -eq 0) { $names = @([string]$entry["extension"]) }
   foreach ($ext in $names) {
     $base = "HKCU:\Software\Classes\SystemFileAssociations\.$ext\shell\ConvertTo"
     New-Item -Path $base -Force | Out-Null
     Set-ItemProperty -Path $base -Name "MUIVerb" -Value "Convert to"
     Set-ItemProperty -Path $base -Name "SubCommands" -Value ""
-    foreach ($target in @($entry.targets)) {
+    foreach ($target in $entry["targets"]) {
       $verb = Join-Path $base "shell\$target"
       New-Item -Path $verb -Force | Out-Null
       Set-ItemProperty -Path $verb -Name "MUIVerb" -Value ".$target"
