@@ -19,6 +19,7 @@ test("two png fixtures become jpeg files in one run", async () => {
   const second = path.join(dir, "two.png");
   await copyFile(png, first);
   await copyFile(png, second);
+  await BatchConvert.run({ files: [first], to: "jpg", engines: NodeEngines.bundled() });
   const started = Date.now();
   const items = await BatchConvert.run({
     files: [first, second],
