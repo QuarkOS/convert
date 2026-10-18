@@ -30,10 +30,17 @@ $list.Size = New-Object System.Drawing.Size(372, 120)
 foreach ($file in $files) { [void]$list.Items.Add([IO.Path]::GetFileName($file)) }
 $form.Controls.Add($list)
 
-$targetsJson = & $node --disable-warning=ExperimentalWarning --experimental-strip-types $hostScript --targets @files
+$errFile = Join-Path $env:TEMP "convert-targets-err.txt"
+$targetsJson = & $node --disable-warning=ExperimentalWarning --experimental-strip-types $hostScript --targets @files 2>$errFile
+if ($LASTEXITCODE -ne 0) { throw (Get-Content -Raw $errFile) }
+$targetText = ($targetsJson | Out-String).Trim()
+$targetStart = $targetText.IndexOf("[")
+$targetEnd = $targetText.LastIndexOf("]")
+if ($targetStart -lt 0 -or $targetEnd -le $targetStart) { throw "Convert did not return targets" }
+$targetText = $targetText.Substring($targetStart, $targetEnd - $targetStart + 1)
 Add-Type -AssemblyName System.Web.Extensions
 $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
-$targets = $serializer.DeserializeObject([string]$targetsJson)
+$targets = $serializer.DeserializeObject($targetText)
 $picker = New-Object System.Windows.Forms.ComboBox
 $picker.Location = New-Object System.Drawing.Point(24, 160)
 $picker.Size = New-Object System.Drawing.Size(160, 28)

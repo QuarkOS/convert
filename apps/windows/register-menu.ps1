@@ -3,11 +3,18 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $node = (Get-Command node -ErrorAction SilentlyContinue).Source
 if (-not $node) { throw "node is not on PATH" }
 $hostScript = Join-Path $here "src\host.ts"
-$json = & $node --disable-warning=ExperimentalWarning --experimental-strip-types $hostScript --menu
+$errFile = Join-Path $env:TEMP "convert-menu-err.txt"
+$json = & $node --disable-warning=ExperimentalWarning --experimental-strip-types $hostScript --menu 2>$errFile
+if ($LASTEXITCODE -ne 0) { throw (Get-Content -Raw $errFile) }
+$text = ($json | Out-String).Trim()
+$start = $text.IndexOf("[")
+$end = $text.LastIndexOf("]")
+if ($start -lt 0 -or $end -le $start) { throw "Convert did not return a menu" }
+$text = $text.Substring($start, $end - $start + 1)
 Add-Type -AssemblyName System.Web.Extensions
 $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
 $serializer.MaxJsonLength = 67108864
-$entries = $serializer.DeserializeObject([string]$json)
+$entries = $serializer.DeserializeObject($text)
 foreach ($entry in $entries) {
   $names = $entry["extensions"]
   if ($null -eq $names -or $names.Count -eq 0) { $names = @([string]$entry["extension"]) }
