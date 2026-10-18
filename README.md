@@ -37,7 +37,7 @@ The first command writes `HKCU\Software\Classes\SystemFileAssociations` verbs. O
 
 `apps/windows/AppxManifest.xml` is the Store identity (`Quack.Convert`, `0.1.0.0`). The listing draft is `docs/store-listings/windows.md`. This repo does not submit the package.
 
-On a Windows 11 PC, pack and sideload with the NuGet build tools. The script downloads `Microsoft.Windows.SDK.BuildTools` `10.0.28000.2705`, runs `makeappx.exe` and `signtool.exe` from that package, and does not install the full Windows SDK. `-Sign` creates a throwaway `CN=Convert` certificate in the user temp directory, signs the package, installs it for the current user, and prints `Get-AppxPackage Quack.Convert`. The certificate, the private key, and the signed `.msix` stay out of git.
+On a Windows 11 PC, pack and sideload with the NuGet build tools. The script downloads `Microsoft.Windows.SDK.BuildTools` `10.0.28000.2705`, runs `makeappx.exe` and `signtool.exe` from that package, and does not install the full Windows SDK. `-Sign` builds a throwaway `CN=Convert` code-signing certificate in memory (`ThrowawayCert`), writes the pfx only under the user temp directory, signs the package, installs it for the current user, and prints `Get-AppxPackage Quack.Convert`. The certificate, the private key, and the signed `.msix` stay out of git.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File apps/windows/pack-msix.ps1 -Sign

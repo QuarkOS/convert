@@ -2,6 +2,32 @@ param(
   [switch]$Sign
 )
 
+class ThrowawayCert {
+  static [string] WritePfx([string]$path, [string]$password) {
+    $csp = New-Object System.Security.Cryptography.CspParameters(24, "Microsoft Enhanced RSA and AES Cryptographic Provider")
+    $csp.Flags = [System.Security.Cryptography.CspProviderFlags]144
+    $csp.KeyContainerName = "ConvertThrowaway"
+    $rsa = New-Object System.Security.Cryptography.RSACryptoServiceProvider(2048, $csp)
+    $rsa.PersistKeyInCsp = $false
+    $request = New-Object System.Security.Cryptography.X509Certificates.CertificateRequest(
+      "CN=Convert",
+      $rsa,
+      [System.Security.Cryptography.HashAlgorithmName]::SHA256,
+      [System.Security.Cryptography.RSASignaturePadding]::Pkcs1
+    )
+    $oids = New-Object System.Security.Cryptography.OidCollection
+    [void]$oids.Add((New-Object System.Security.Cryptography.Oid("1.3.6.1.5.5.7.3.3")))
+    $request.CertificateExtensions.Add((New-Object System.Security.Cryptography.X509Certificates.X509EnhancedKeyUsageExtension($oids, $false)))
+    $request.CertificateExtensions.Add((New-Object System.Security.Cryptography.X509Certificates.X509KeyUsageExtension(
+      [System.Security.Cryptography.X509Certificates.X509KeyUsageFlags]::DigitalSignature,
+      $false
+    )))
+    $cert = $request.CreateSelfSigned([DateTimeOffset]::UtcNow.AddDays(-1), [DateTimeOffset]::UtcNow.AddDays(2))
+    [System.IO.File]::WriteAllBytes($path, $cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Pfx, $password))
+    return $cert.Subject
+  }
+}
+
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -56,29 +82,28 @@ if (-not $Sign) { exit 0 }
 $pfx = Join-Path $env:TEMP "convert-throwaway.pfx"
 $password = -join ((48..57 + 65..90 + 97..122) | Get-Random -Count 24 | ForEach-Object { [char]$_ })
 $secure = ConvertTo-SecureString $password -AsPlainText -Force
-$cert = New-SelfSignedCertificate -Type Custom -Subject "CN=Convert" -KeyUsage DigitalSignature -FriendlyName "Convert throwaway" -CertStoreLocation "Cert:\CurrentUser\My" -TextExtension @(
-  "2.5.29.37={text}1.3.6.1.5.5.7.3.3",
-  "2.5.29.19={text}false"
-)
-Write-Output "CERT_SUBJECT $($cert.Subject)"
-Export-PfxCertificate -Cert $cert -FilePath $pfx -Password $secure | Out-Null
-Import-PfxCertificate -FilePath $pfx -Password $secure -CertStoreLocation "Cert:\CurrentUser\TrustedPeople" | Out-Null
 try {
-  Import-PfxCertificate -FilePath $pfx -Password $secure -CertStoreLocation "Cert:\LocalMachine\TrustedPeople" | Out-Null
-  Write-Output "CERT_TRUST local-machine"
-} catch {
-  Write-Output "CERT_TRUST current-user"
+  $subject = [ThrowawayCert]::WritePfx($pfx, $password)
+  Write-Output "CERT_SUBJECT $subject"
+  Import-PfxCertificate -FilePath $pfx -Password $secure -CertStoreLocation "Cert:\CurrentUser\TrustedPeople" | Out-Null
+  try {
+    Import-PfxCertificate -FilePath $pfx -Password $secure -CertStoreLocation "Cert:\LocalMachine\TrustedPeople" | Out-Null
+    Write-Output "CERT_TRUST local-machine"
+  } catch {
+    Write-Output "CERT_TRUST current-user"
+  }
+
+  $unlock = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock"
+  if (-not (Test-Path $unlock)) { New-Item -Path $unlock -Force | Out-Null }
+  New-ItemProperty -Path $unlock -Name "AllowAllTrustedApps" -Value 1 -PropertyType DWord -Force | Out-Null
+  New-ItemProperty -Path $unlock -Name "AllowDevelopmentWithoutDevLicense" -Value 1 -PropertyType DWord -Force | Out-Null
+
+  & $signtool.FullName sign /fd SHA256 /f $pfx /p $password $msix
+  if ($LASTEXITCODE -ne 0) { throw "signtool failed" }
+  Write-Output "MSIX_SIGNED"
+} finally {
+  if (Test-Path $pfx) { Remove-Item -Force $pfx }
 }
-
-$unlock = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock"
-if (-not (Test-Path $unlock)) { New-Item -Path $unlock -Force | Out-Null }
-New-ItemProperty -Path $unlock -Name "AllowAllTrustedApps" -Value 1 -PropertyType DWord -Force | Out-Null
-New-ItemProperty -Path $unlock -Name "AllowDevelopmentWithoutDevLicense" -Value 1 -PropertyType DWord -Force | Out-Null
-
-& $signtool.FullName sign /fd SHA256 /f $pfx /p $password $msix
-if ($LASTEXITCODE -ne 0) { throw "signtool failed" }
-Write-Output "MSIX_SIGNED"
-Remove-Item -Force $pfx
 
 Add-AppxPackage -Path $msix -ForceUpdateFromAnyVersion
 Write-Output "APPX_INSTALLED"

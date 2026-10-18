@@ -7,7 +7,32 @@ New-Item -ItemType Directory -Force -Path $out | Out-Null
 
 function Log([string]$message) {
   Add-Content -Path (Join-Path $out "ship.log") -Value $message
-  Write-Output $message
+  [Console]::Out.WriteLine($message)
+  [Console]::Out.Flush()
+}
+
+function Query-Text([string]$command) {
+  $pref = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  $text = & cmd.exe /c "$command & exit /b 0" 2>&1 | Out-String
+  $ErrorActionPreference = $pref
+  return $text.Trim()
+}
+
+class LoopbackSession {
+  static [string] Connect([string]$user, [string]$password) {
+    New-Item -Path "HKCU:\Software\Microsoft\Terminal Server Client" -Force | Out-Null
+    New-ItemProperty -Path "HKCU:\Software\Microsoft\Terminal Server Client" -Name "AuthenticationLevelOverride" -Value 0 -PropertyType DWord -Force | Out-Null
+    $rdp = Join-Path $env:TEMP "convert-loopback.rdp"
+    $body = "full address:s:127.0.0.1`r`nusername:s:$user`r`nprompt for credentials:i:0`r`nauthentication level:i:0`r`n"
+    Set-Content -Path $rdp -Encoding ASCII -Value $body
+    $pref = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    & cmdkey.exe /generic:TERMSRV/127.0.0.1 /user:$user /pass:$password | Out-Null
+    $proc = Start-Process -FilePath "$env:SystemRoot\System32\mstsc.exe" -ArgumentList "`"$rdp`"" -PassThru
+    $ErrorActionPreference = $pref
+    return "mstsc.exe /v:127.0.0.1 pid=$($proc.Id)"
+  }
 }
 
 Log "SHIP_START"
@@ -36,6 +61,9 @@ try {
 }
 
 Log "STEP desktop-user"
+Log "WHOAMI $(whoami)"
+Log "SESSION_BEFORE $(Query-Text 'query session')"
+Log "USER_BEFORE $(Query-Text 'query user')"
 $pass = -join ((48..57 + 65..90 + 97..122) | Get-Random -Count 20 | ForEach-Object { [char]$_ })
 $secure = ConvertTo-SecureString $pass -AsPlainText -Force
 $existing = Get-LocalUser -Name "convertshot" -ErrorAction SilentlyContinue
@@ -51,20 +79,21 @@ Log "RDP_SERVICE $((Get-Service TermService).Status)"
 
 $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File C:\convertwork\apps\windows\desktop-capture.ps1"
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User "convertshot"
-$principal = New-ScheduledTaskPrincipal -UserId "convertshot" -LogonType Interactive -RunLevel Limited
+$principal = New-ScheduledTaskPrincipal -UserId "convertshot" -LogonType Interactive -RunLevel Highest
 Register-ScheduledTask -TaskName "ConvertDesktop" -Action $action -Trigger $trigger -Principal $principal -Force | Out-Null
 Log "TASK_REGISTERED"
-Write-Output "RDP_USER convertshot"
-Write-Output "RDP_PASS $pass"
-Write-Output "RDP_READY"
 
-$deadline = (Get-Date).AddSeconds(100)
+Log "ATTEMPT1 local mstsc loopback to 127.0.0.1"
+try {
+  Log ([LoopbackSession]::Connect("convertshot", $pass))
+} catch {
+  Log "ATTEMPT1_FAIL $($_.Exception.Message)"
+}
+$deadline = (Get-Date).AddSeconds(50)
 $seen = $false
+$query = ""
 while ((Get-Date) -lt $deadline) {
-  $pref = $ErrorActionPreference
-  $ErrorActionPreference = "Continue"
-  $query = query user 2>&1 | Out-String
-  $ErrorActionPreference = $pref
+  $query = Query-Text "query user"
   if ($query -match "convertshot") {
     $seen = $true
     Log "QUERY $query"
@@ -73,10 +102,10 @@ while ((Get-Date) -lt $deadline) {
   Start-Sleep -Seconds 3
 }
 if (-not $seen) {
-  $query = query user 2>&1 | Out-String
   Log "ATTEMPT1_FAIL query user never showed convertshot"
   Log "QUERY $query"
-  Log "ATTEMPT2 Start-Process -Credential"
+  Log "SESSION_AFTER $(Query-Text 'query session')"
+  Log "ATTEMPT2 Start-Process -FilePath powershell.exe -Credential COMPUTER\convertshot -LoadUserProfile -ArgumentList desktop-capture.ps1"
   try {
     $cred = New-Object System.Management.Automation.PSCredential ("$env:COMPUTERNAME\convertshot", $secure)
     Start-Process -FilePath "powershell.exe" -Credential $cred -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File C:\convertwork\apps\windows\desktop-capture.ps1" -LoadUserProfile
@@ -86,7 +115,7 @@ if (-not $seen) {
   }
 }
 
-$wait = (Get-Date).AddSeconds(45)
+$wait = (Get-Date).AddSeconds(120)
 while ((Get-Date) -lt $wait -and -not (Test-Path (Join-Path $out "desktop.done"))) { Start-Sleep -Seconds 2 }
 if (Test-Path (Join-Path $out "desktop.log")) {
   Get-Content (Join-Path $out "desktop.log") | ForEach-Object { Log "DESK $_" }
