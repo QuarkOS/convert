@@ -5,7 +5,7 @@ param(
 class ThrowawayCert {
   static [string] WritePfx([string]$path, [string]$password) {
     $csp = New-Object System.Security.Cryptography.CspParameters(24, "Microsoft Enhanced RSA and AES Cryptographic Provider")
-    $csp.Flags = [System.Security.Cryptography.CspProviderFlags]144
+    $csp.Flags = [System.Security.Cryptography.CspProviderFlags]16
     $csp.KeyContainerName = "ConvertThrowaway"
     $rsa = New-Object System.Security.Cryptography.RSACryptoServiceProvider(2048, $csp)
     $request = New-Object System.Security.Cryptography.X509Certificates.CertificateRequest(
@@ -23,6 +23,13 @@ class ThrowawayCert {
     )))
     $cert = $request.CreateSelfSigned([DateTimeOffset]::UtcNow.AddDays(-1), [DateTimeOffset]::UtcNow.AddDays(2))
     [System.IO.File]::WriteAllBytes($path, $cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Pfx, $password))
+    return $cert.Subject
+  }
+
+  static [string] FromStore([string]$path, [string]$password) {
+    $secure = ConvertTo-SecureString $password -AsPlainText -Force
+    $cert = New-SelfSignedCertificate -Subject "CN=Convert" -CertStoreLocation "Cert:\CurrentUser\My" -Provider "Microsoft Enhanced RSA and AES Cryptographic Provider" -KeyExportPolicy Exportable -KeySpec Signature -KeyLength 2048 -HashAlgorithm SHA256 -Type CodeSigningCert -NotAfter (Get-Date).AddDays(2)
+    Export-PfxCertificate -Cert $cert -FilePath $path -Password $secure | Out-Null
     return $cert.Subject
   }
 }
@@ -82,7 +89,15 @@ $pfx = Join-Path $env:TEMP "convert-throwaway.pfx"
 $password = -join ((48..57 + 65..90 + 97..122) | Get-Random -Count 24 | ForEach-Object { [char]$_ })
 $secure = ConvertTo-SecureString $password -AsPlainText -Force
 try {
-  $subject = [ThrowawayCert]::WritePfx($pfx, $password)
+  $subject = ""
+  try {
+    $subject = [ThrowawayCert]::WritePfx($pfx, $password)
+    Write-Output "CERT_MODE memory"
+  } catch {
+    Write-Output "CERT_MEMORY_FAIL $($_.Exception.Message)"
+    $subject = [ThrowawayCert]::FromStore($pfx, $password)
+    Write-Output "CERT_MODE store"
+  }
   Write-Output "CERT_SUBJECT $subject"
   Import-PfxCertificate -FilePath $pfx -Password $secure -CertStoreLocation "Cert:\CurrentUser\TrustedPeople" | Out-Null
   try {
