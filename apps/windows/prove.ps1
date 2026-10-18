@@ -125,7 +125,7 @@ if (Have "ffmpeg") {
   } else {
     Log "FFPROBE missing"
     $audioLog = Join-Path $out "audio.txt"
-    & ffmpeg -hide_banner -i $mp3 2>$audioLog
+    cmd.exe /c "ffmpeg -hide_banner -i `"$mp3`" > `"$audioLog`" 2>&1 & exit /b 0"
     Get-Content $audioLog | ForEach-Object { Log "AUDIO $_" }
     $audioText = Get-Content -Raw $audioLog
     if ($audioText -notmatch "Audio:") { throw "mp3 has no audio stream" }
