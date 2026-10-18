@@ -134,6 +134,8 @@ if (Have "ffmpeg") {
 Log "STEP pack"
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $here "pack.ps1")
 
+Log "INTERACTIVE $([Environment]::UserInteractive)"
+query session 2>&1 | ForEach-Object { Log "SESSION $_" }
 Log "STEP capture"
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $here "capture-menu.ps1")
 $shot = Join-Path $out "win-menu-png.png"

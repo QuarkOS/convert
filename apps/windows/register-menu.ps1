@@ -20,7 +20,11 @@ foreach ($entry in $entries) {
       $command = Join-Path $verb "command"
       New-Item -Path $command -Force | Out-Null
       $run = '"' + $node + '" --disable-warning=ExperimentalWarning --experimental-strip-types "' + $hostScript + '" --to ' + $target + ' "%1"'
-      (Get-Item -LiteralPath $command).SetValue("", $run)
+      $relative = $command -replace "^HKCU:\\", ""
+      $writable = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($relative)
+      if (-not $writable) { throw "Could not open $command" }
+      $writable.SetValue("", $run)
+      $writable.Close()
     }
   }
 }
