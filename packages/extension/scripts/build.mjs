@@ -3,6 +3,7 @@ import { cp, mkdir, rm } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as esbuild from "esbuild";
+import { FirefoxPack } from "./firefox-pack.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const coreEntry = resolve(root, "../core/src/index.ts");
@@ -48,3 +49,4 @@ await cp(resolve(root, "src/popup.html"), resolve(dist, "popup.html"));
 await cp(resolve(root, "src/popup.css"), resolve(dist, "popup.css"));
 await cp(resolve(root, "src/manifest.json"), resolve(dist, "manifest.json"));
 await cp(resolve(root, "icons"), resolve(dist, "icons"), { recursive: true });
+await FirefoxPack.write(dist, resolve(root, "dist-firefox"));

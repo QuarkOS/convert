@@ -60,7 +60,17 @@ class PageRescue {
   private static listen(): void {
     document.addEventListener("change", (event) => PageRescue.onChange(event), true);
     document.addEventListener("drop", (event) => PageRescue.onDrop(event), true);
-    document.addEventListener("contextmenu", (event) => PageRescue.onContextMenu(event), true);
+    chrome.runtime.onMessage.addListener((message) => {
+      if (!message || message.type !== "native-convert" || typeof message.url !== "string") return;
+      const to = FormatCatalog.parse(String(message.to ?? ""));
+      const named = PageRescue.formatOfUrl(message.url);
+      if (!to || !named || named.from === to) return;
+      const panel = PageRescue.openPanel(24, 24);
+      const title = document.createElement("h2");
+      title.textContent = "Converting…";
+      panel.append(title);
+      void PageRescue.convertUrl(message.url, named.filename, named.from, to, panel);
+    });
     document.addEventListener("click", (event) => PageRescue.onPageClick(event), true);
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") PageRescue.close();
@@ -94,22 +104,6 @@ class PageRescue {
     event.preventDefault();
     event.stopImmediatePropagation();
     PageRescue.showToast(input, file, decision);
-  }
-
-  private static onContextMenu(event: MouseEvent): void {
-    const target = event.target;
-    if (!(target instanceof Element)) return;
-    const image = target.closest("img");
-    const link = target.closest("a[href]");
-    const url = image instanceof HTMLImageElement ? image.currentSrc || image.src : link instanceof HTMLAnchorElement ? link.href : "";
-    if (!url) return;
-    const named = PageRescue.formatOfUrl(url);
-    if (!named) return;
-    const targets = FormatGraph.targets(PageRescue.#edges, named.from);
-    if (targets.length === 0) return;
-    event.preventDefault();
-    event.stopPropagation();
-    PageRescue.showMenu(event.clientX, event.clientY, url, named.filename, named.from, targets);
   }
 
   private static onPageClick(event: Event): void {

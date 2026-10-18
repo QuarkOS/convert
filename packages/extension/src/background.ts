@@ -1,4 +1,7 @@
+import { NativeMenu } from "./native-menu.ts";
 import { ExtensionSettings } from "./settings.ts";
+
+NativeMenu.install();
 
 chrome.runtime.onInstalled.addListener(() => {
   void ExtensionSettings.read().then((prefs) => {

@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Convert a file to another type on this device. Nothing is uploaded.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2SOXt7lwavynLFuyZAzP55hSrnVOulScafW2vZh6Gj1QzFf4q0N+nqSMxcInI0Wz/3PSCZdbDkXrOCE+3sGLHnnnsuB7BL71OL0c0ZuXcboeOaAzSQlYKFiZ1Drlye/V44HgSvtcr6sFHLZo0Sd8NemXiJhzwUW6XlYYZb3vzBms/Mlhs+nIhdoZEFR3yRynedlyAQ3Bcj4mysc149vmhwkMo3rVP7gvdIw/JESb/rDnLa1ZlEjniesxU6hic4p+wF8eK7zXzgCLdVlTQN4CdHTvxgBJ3uRKlQnG5a2A7D+l0Q/HAYiWo7De2rZbLNhAjPogtaKUqU1TbdAnpW7iswIDAQAB",
-  "permissions": ["storage"],
+  "permissions": ["storage", "contextMenus"],
   "host_permissions": ["http://*/*", "https://*/*"],
   "action": {
     "default_title": "Convert",

@@ -12,7 +12,7 @@ Convert a file to a type the page will accept. The conversion runs on this devic
 
 ## Description
 
-Right-click an image or a link and choose Convert to. The menu lists only the types that file can become.
+Right-click an image or a link and choose Convert to. The menu lists only the types that file can become. Chrome loads the background as a service worker. Firefox 158 rejects `background.service_worker`, so the Firefox package uses `background.scripts` for the same file.
 
 Drop a file on the toolbar popup, pick a type, and save the result. Nothing is uploaded.
 
@@ -23,6 +23,7 @@ The extension converts still images with the browser's own canvas (PNG, JPEG, We
 ## Permissions
 
 - `storage`. Remembers the global offer switch and the sites you turned off.
+- `contextMenus`. Adds Convert to to the browser's own right-click menu for an image or a link whose address names a type Convert can read.
 - Host access for `http` and `https`. The content script reads the file you chose or the image you right-clicked so it can convert it locally. The bytes are not sent to a server.
 
 The popup saves a file with a normal download link. Convert does not request the downloads permission.
