@@ -1,3 +1,7 @@
+param(
+  [switch]$SkipDesktop
+)
+
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -55,6 +59,12 @@ try {
   Log "MSIX_EXIT $LASTEXITCODE"
 } catch {
   Log "MSIX_FAIL $($_.Exception.Message)"
+}
+
+if ($SkipDesktop) {
+  Log "DESKTOP_SKIPPED"
+  Log "SHIP_DONE"
+  exit 0
 }
 
 Log "STEP desktop-user"

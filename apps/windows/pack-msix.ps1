@@ -8,7 +8,6 @@ class ThrowawayCert {
     $csp.Flags = [System.Security.Cryptography.CspProviderFlags]144
     $csp.KeyContainerName = "ConvertThrowaway"
     $rsa = New-Object System.Security.Cryptography.RSACryptoServiceProvider(2048, $csp)
-    $rsa.PersistKeyInCsp = $false
     $request = New-Object System.Security.Cryptography.X509Certificates.CertificateRequest(
       "CN=Convert",
       $rsa,
