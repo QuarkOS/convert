@@ -117,15 +117,16 @@ if ($pngTargets -contains "mp3") { throw "png menu offers mp3" }
 
 if (Have "ffmpeg") {
   $wav = Join-Path $repo "packages\core\fixtures\audio\tone.wav"
-  $mp3 = Join-Path $out "tone.mp3"
+  $mp3 = Join-Path $repo "packages\core\fixtures\audio\tone.mp3"
   & node --disable-warning=ExperimentalWarning --experimental-strip-types $hostScript --to mp3 $wav
   if ($LASTEXITCODE -ne 0) { throw "wav convert failed" }
   if (Have "ffprobe") {
     & ffprobe -hide_banner -show_streams $mp3
   } else {
-    & ffmpeg -hide_banner -i $mp3
     Log "FFPROBE missing"
+    & ffmpeg -hide_banner -i $mp3 2>&1 | ForEach-Object { Log "AUDIO $_" }
   }
+  if (-not (Test-Path $mp3)) { throw "wav convert wrote no mp3" }
   Log "WAV_OK $mp3"
 } else {
   Log "WAV_SKIP ffmpeg is not installed"
@@ -146,11 +147,16 @@ if (-not (Test-Path $shot)) {
     Invoke-WebRequest -Uri "https://download.sysinternals.com/files/PSTools.zip" -OutFile $zip -UseBasicParsing
     Expand-Archive -Path $zip -DestinationPath (Join-Path $tools "PSTools") -Force
     $psexec = Join-Path $tools "PSTools\PsExec64.exe"
-    $session = 1
-    $query = query user | Out-String
-    if ($query -match "(\d+)\s+Active") { $session = [int]$Matches[1] }
-    Log "PSEXEC session $session"
-    & $psexec -accepteula -nobanner -i $session -w $repo powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $here "capture-menu.ps1")
+    $query = query session 2>&1 | Out-String
+    $session = $null
+    if ($query -match "console\s+(\d+)") { $session = [int]$Matches[1] }
+    elseif ($query -match "(\d+)\s+Active") { $session = [int]$Matches[1] }
+    if ($null -eq $session) {
+      Log "PSEXEC no console session"
+    } else {
+      Log "PSEXEC session $session"
+      & $psexec -accepteula -nobanner -i $session -w $repo powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $here "capture-menu.ps1")
+    }
   } catch {
     Log "PSEXEC_FAILED $($_.Exception.Message)"
   }
