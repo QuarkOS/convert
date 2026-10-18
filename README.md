@@ -35,4 +35,10 @@ powershell -ExecutionPolicy Bypass -File apps/windows/window.ps1 C:\path\a.png C
 
 The first command writes `HKCU\Software\Classes\SystemFileAssociations` verbs. On Windows 11 those verbs show in the classic menu, under Show more options. The window converts every file you pass to one shared target, and it says "No file is selected." when the path list is empty.
 
-`apps/windows/AppxManifest.xml` is the Store identity (`Quack.Convert`, `0.1.0.0`). The listing draft is `docs/store-listings/windows.md`. This repo does not submit the package. `apps/windows/launcher/Convert.cs` is a small full-trust launcher for a later MSIX layout. `apps/windows/prove.ps1` is the check that runs on a Windows 11 machine: install Node, run the tests, register the menu, convert two files, and try to photograph the Explorer menu.
+`apps/windows/AppxManifest.xml` is the Store identity (`Quack.Convert`, `0.1.0.0`). The listing draft is `docs/store-listings/windows.md`. This repo does not submit the package.
+
+On a Windows 11 PC, pack and sideload with the NuGet build tools. The script downloads `Microsoft.Windows.SDK.BuildTools` `10.0.28000.2705`, runs `makeappx.exe` and `signtool.exe` from that package, and does not install the full Windows SDK. `-Sign` creates a throwaway `CN=Convert` certificate in the user temp directory, signs the package, installs it for the current user, and prints `Get-AppxPackage Quack.Convert`. The certificate, the private key, and the signed `.msix` stay out of git.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File apps/windows/pack-msix.ps1 -Sign
+```

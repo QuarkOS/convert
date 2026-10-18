@@ -4,6 +4,9 @@ dist/
 *.log
 .DS_Store
 apps/windows/build/
+*.msix
+*.pfx
+*.cer
 /tools/
 /proof-out/
 packages/extension/dist/

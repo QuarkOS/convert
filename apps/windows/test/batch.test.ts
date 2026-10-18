@@ -58,6 +58,14 @@ test("no selection is reported before any conversion", async () => {
   assert.equal(code, 2);
 });
 
+test("the msix script uses the nuget build tools and does not submit", async () => {
+  const script = await readFile(path.join(root, "apps/windows/pack-msix.ps1"), "utf8");
+  assert.match(script, /Microsoft\.Windows\.SDK\.BuildTools/);
+  assert.match(script, /makeappx\.exe/);
+  assert.match(script, /signtool\.exe/);
+  assert.equal(script.includes("PartnerCenter"), false);
+});
+
 test("the package manifest names Convert and is not a store submission", async () => {
   const xml = await readFile(manifest, "utf8");
   assert.match(xml, /Name="Quack.Convert"/);
