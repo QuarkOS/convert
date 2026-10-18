@@ -124,7 +124,11 @@ if (Have "ffmpeg") {
     & ffprobe -hide_banner -show_streams $mp3
   } else {
     Log "FFPROBE missing"
-    & ffmpeg -hide_banner -i $mp3 2>&1 | ForEach-Object { Log "AUDIO $_" }
+    $audioLog = Join-Path $out "audio.txt"
+    & ffmpeg -hide_banner -i $mp3 2>$audioLog
+    Get-Content $audioLog | ForEach-Object { Log "AUDIO $_" }
+    $audioText = Get-Content -Raw $audioLog
+    if ($audioText -notmatch "Audio:") { throw "mp3 has no audio stream" }
   }
   if (-not (Test-Path $mp3)) { throw "wav convert wrote no mp3" }
   Log "WAV_OK $mp3"
