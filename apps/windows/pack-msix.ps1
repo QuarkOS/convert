@@ -3,34 +3,25 @@ param(
 )
 
 class ThrowawayCert {
-  static [string] WritePfx([string]$path, [string]$password) {
-    $csp = New-Object System.Security.Cryptography.CspParameters(24, "Microsoft Enhanced RSA and AES Cryptographic Provider")
-    $csp.Flags = [System.Security.Cryptography.CspProviderFlags]16
-    $csp.KeyContainerName = "ConvertThrowaway"
-    $rsa = New-Object System.Security.Cryptography.RSACryptoServiceProvider(2048, $csp)
-    $request = New-Object System.Security.Cryptography.X509Certificates.CertificateRequest(
-      "CN=Convert",
-      $rsa,
-      [System.Security.Cryptography.HashAlgorithmName]::SHA256,
-      [System.Security.Cryptography.RSASignaturePadding]::Pkcs1
-    )
-    $oids = New-Object System.Security.Cryptography.OidCollection
-    [void]$oids.Add((New-Object System.Security.Cryptography.Oid("1.3.6.1.5.5.7.3.3")))
-    $request.CertificateExtensions.Add((New-Object System.Security.Cryptography.X509Certificates.X509EnhancedKeyUsageExtension($oids, $false)))
-    $request.CertificateExtensions.Add((New-Object System.Security.Cryptography.X509Certificates.X509KeyUsageExtension(
-      [System.Security.Cryptography.X509Certificates.X509KeyUsageFlags]::DigitalSignature,
-      $false
-    )))
-    $cert = $request.CreateSelfSigned([DateTimeOffset]::UtcNow.AddDays(-1), [DateTimeOffset]::UtcNow.AddDays(2))
-    [System.IO.File]::WriteAllBytes($path, $cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Pfx, $password))
-    return $cert.Subject
-  }
-
-  static [string] FromStore([string]$path, [string]$password) {
-    $secure = ConvertTo-SecureString $password -AsPlainText -Force
-    $cert = New-SelfSignedCertificate -Subject "CN=Convert" -CertStoreLocation "Cert:\CurrentUser\My" -Provider "Microsoft Enhanced RSA and AES Cryptographic Provider" -KeyExportPolicy Exportable -KeySpec Signature -KeyLength 2048 -HashAlgorithm SHA256 -Type CodeSigningCert -NotAfter (Get-Date).AddDays(2)
-    Export-PfxCertificate -Cert $cert -FilePath $path -Password $secure | Out-Null
-    return $cert.Subject
+  static [string] WritePfx([string]$path, [string]$password, [string]$repo, [string]$here, [string]$csc) {
+    $tools = Join-Path $repo "tools\bouncycastle"
+    $dll = Join-Path $tools "BouncyCastle.Crypto.dll"
+    if (-not (Test-Path $dll)) {
+      New-Item -ItemType Directory -Force -Path $tools | Out-Null
+      $nupkg = Join-Path $tools "bouncycastle.1.8.9.nupkg"
+      Invoke-WebRequest -Uri "https://api.nuget.org/v3-flatcontainer/bouncycastle/1.8.9/bouncycastle.1.8.9.nupkg" -OutFile $nupkg -UseBasicParsing
+      Copy-Item $nupkg "$nupkg.zip" -Force
+      Expand-Archive -Path "$nupkg.zip" -DestinationPath $tools -Force
+      $found = Get-ChildItem $tools -Recurse -Filter BouncyCastle.Crypto.dll | Select-Object -First 1
+      if (-not $found) { throw "BouncyCastle.Crypto.dll was not in the nupkg" }
+      Copy-Item $found.FullName $dll -Force
+    }
+    $generator = Join-Path $tools "MemoryCert.exe"
+    & $csc /nologo /target:exe "/reference:$dll" "/out:$generator" (Join-Path $here "launcher\MemoryCert.cs")
+    if (-not (Test-Path $generator)) { throw "MemoryCert compile failed" }
+    $subject = & $generator $path $password
+    if (-not (Test-Path $path)) { throw "MemoryCert failed" }
+    return [string]$subject
   }
 }
 
@@ -86,25 +77,19 @@ Write-Output "NOT_SUBMITTED"
 if (-not $Sign) { exit 0 }
 
 $pfx = Join-Path $env:TEMP "convert-throwaway.pfx"
+$cer = Join-Path $env:TEMP "convert-throwaway.cer"
 $password = -join ((48..57 + 65..90 + 97..122) | Get-Random -Count 24 | ForEach-Object { [char]$_ })
-$secure = ConvertTo-SecureString $password -AsPlainText -Force
 try {
-  $subject = ""
-  try {
-    $subject = [ThrowawayCert]::WritePfx($pfx, $password)
-    Write-Output "CERT_MODE memory"
-  } catch {
-    Write-Output "CERT_MEMORY_FAIL $($_.Exception.Message)"
-    $subject = [ThrowawayCert]::FromStore($pfx, $password)
-    Write-Output "CERT_MODE store"
-  }
+  $subject = [ThrowawayCert]::WritePfx($pfx, $password, $repo, $here, $csc)
+  Write-Output "CERT_MODE bouncycastle"
   Write-Output "CERT_SUBJECT $subject"
-  Import-PfxCertificate -FilePath $pfx -Password $secure -CertStoreLocation "Cert:\CurrentUser\TrustedPeople" | Out-Null
+  Import-Certificate -FilePath $cer -CertStoreLocation "Cert:\CurrentUser\TrustedPeople" | Out-Null
+  Write-Output "CERT_TRUST current-user"
   try {
-    Import-PfxCertificate -FilePath $pfx -Password $secure -CertStoreLocation "Cert:\LocalMachine\TrustedPeople" | Out-Null
+    Import-Certificate -FilePath $cer -CertStoreLocation "Cert:\LocalMachine\TrustedPeople" | Out-Null
     Write-Output "CERT_TRUST local-machine"
   } catch {
-    Write-Output "CERT_TRUST current-user"
+    Write-Output "CERT_TRUST_MACHINE $($_.Exception.Message)"
   }
 
   $unlock = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock"
@@ -117,6 +102,7 @@ try {
   Write-Output "MSIX_SIGNED"
 } finally {
   if (Test-Path $pfx) { Remove-Item -Force $pfx }
+  if (Test-Path $cer) { Remove-Item -Force $cer }
 }
 
 Add-AppxPackage -Path $msix -ForceUpdateFromAnyVersion
