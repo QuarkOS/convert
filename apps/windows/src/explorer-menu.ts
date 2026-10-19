@@ -13,7 +13,7 @@ export class ExplorerMenu {
     const edges = FormatGraph.compile(engines);
     const rows: MenuEntry[] = [];
     for (const id of FormatCatalog.ids()) {
-      const targets = FormatGraph.targets(edges, id);
+      const targets = ExplorerMenu.sameFamily(id, FormatGraph.targets(edges, id));
       if (targets.length === 0) continue;
       const record = FormatCatalog.get(id);
       rows.push({
@@ -32,7 +32,7 @@ export class ExplorerMenu {
     for (const file of files) {
       const from = FormatCatalog.fromFilename(path.basename(file));
       if (!from) return [];
-      const targets = new Set(FormatGraph.targets(edges, from));
+      const targets = new Set(ExplorerMenu.sameFamily(from, FormatGraph.targets(edges, from)));
       if (common === null) {
         common = targets;
       } else {
@@ -47,5 +47,11 @@ export class ExplorerMenu {
     for (const id of common ?? []) shared.push(id);
     shared.sort((a, b) => a.localeCompare(b));
     return shared;
+  }
+
+  static sameFamily(from: FormatId, targets: readonly FormatId[]): FormatId[] {
+    const family = FormatCatalog.family(from);
+    if (family !== "image" && family !== "video") return [...targets];
+    return targets.filter((id) => FormatCatalog.family(id) === family);
   }
 }

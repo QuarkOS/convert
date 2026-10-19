@@ -37,20 +37,31 @@ test("two png fixtures become jpeg files in one run", async () => {
   }
 });
 
-test("the explorer menu lists graph targets and skips heic and audio for a png", () => {
+test("the explorer menu keeps an image source on image targets", () => {
   const entries = ExplorerMenu.entries(NodeEngines.bundled());
   const png = entries.find((entry) => entry.from === "png");
+  const mp4 = entries.find((entry) => entry.from === "mp4");
   const markdown = entries.find((entry) => entry.from === "md");
   assert.ok(png);
+  assert.ok(mp4);
   assert.ok(markdown);
   assert.equal(png.targets.includes("jpg"), true);
   assert.equal(png.extensions.includes("png"), true);
   assert.equal(entries.find((entry) => entry.from === "jpg")?.extensions.includes("jpeg"), true);
   assert.equal(png.targets.includes("heic"), false);
   assert.equal(png.targets.includes("mp3"), false);
+  assert.equal(png.targets.includes("mp4"), false);
+  assert.equal(png.targets.includes("mov"), false);
+  assert.equal(png.targets.includes("webm"), false);
+  assert.equal(mp4.targets.includes("webm"), true);
+  assert.equal(mp4.targets.includes("jpg"), false);
+  assert.equal(mp4.targets.includes("png"), false);
   assert.equal(markdown.targets.includes("docx"), true);
   assert.equal(markdown.targets.includes("pdf"), true);
   assert.equal(markdown.targets.includes("mp3"), false);
+  const written = BatchConvert.outputName("photo.png", "jpg");
+  assert.equal(written, "photo.jpg.jpg");
+  assert.notEqual(BatchConvert.shownName("photo.png"), BatchConvert.shownName(written));
 });
 
 test("no selection is reported before any conversion", async () => {

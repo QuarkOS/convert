@@ -19,8 +19,20 @@ export class BatchConvert {
     return items;
   }
 
+  static outputName(filename: string, to: FormatId): string {
+    const renamed = FormatCatalog.rename(filename, to);
+    const ext = `.${FormatCatalog.extension(to)}`;
+    if (renamed.toLowerCase().endsWith(`${ext}${ext}`)) return renamed;
+    return `${renamed}${ext}`;
+  }
+
+  static shownName(filename: string): string {
+    const dot = filename.lastIndexOf(".");
+    return dot > 0 ? filename.slice(0, dot) : filename;
+  }
+
   static outputPath(source: string, to: FormatId): string {
-    return path.join(path.dirname(source), FormatCatalog.rename(path.basename(source), to));
+    return path.join(path.dirname(source), BatchConvert.outputName(path.basename(source), to));
   }
 
   private static async one(source: string, to: FormatId, engines: readonly Engine[]): Promise<BatchItem> {

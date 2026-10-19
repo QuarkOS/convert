@@ -20,6 +20,7 @@ foreach ($entry in $entries) {
   if ($null -eq $names -or $names.Count -eq 0) { $names = @([string]$entry["extension"]) }
   foreach ($ext in $names) {
     $base = "HKCU:\Software\Classes\SystemFileAssociations\.$ext\shell\ConvertTo"
+    if (Test-Path $base) { Remove-Item -Path $base -Recurse -Force }
     New-Item -Path $base -Force | Out-Null
     Set-ItemProperty -Path $base -Name "MUIVerb" -Value "Convert to"
     Set-ItemProperty -Path $base -Name "SubCommands" -Value ""
