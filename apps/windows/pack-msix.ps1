@@ -28,6 +28,17 @@ class ThrowawayCert {
   }
 }
 
+class PackageSigner {
+  static [int] SignAsUser([string]$signtool, [string]$pfx, [string]$msix, [string]$pfxPassword, [string]$account, [string]$userPassword, [string]$logDir) {
+    $secure = ConvertTo-SecureString $userPassword -AsPlainText -Force
+    $cred = New-Object System.Management.Automation.PSCredential ($account, $secure)
+    $outLog = Join-Path $logDir "signtool.out"
+    $errLog = Join-Path $logDir "signtool.err"
+    $proc = Start-Process -FilePath $signtool -ArgumentList @("sign", "/fd", "SHA256", "/f", $pfx, "/p", $pfxPassword, $msix) -Credential $cred -LoadUserProfile -Wait -PassThru -WindowStyle Hidden -RedirectStandardOutput $outLog -RedirectStandardError $errLog
+    return [int]$proc.ExitCode
+  }
+}
+
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -100,12 +111,32 @@ try {
   New-ItemProperty -Path $unlock -Name "AllowAllTrustedApps" -Value 1 -PropertyType DWord -Force | Out-Null
   New-ItemProperty -Path $unlock -Name "AllowDevelopmentWithoutDevLicense" -Value 1 -PropertyType DWord -Force | Out-Null
 
-  & $signtool.FullName sign /fd SHA256 /f $pfx /p $password $msix
-  if ($LASTEXITCODE -ne 0) { throw "signtool failed" }
+  $sharedPfx = Join-Path $build "throwaway.pfx"
+  Copy-Item $pfx $sharedPfx -Force
+  & $signtool.FullName sign /fd SHA256 /f $sharedPfx /p $password $msix
+  if ($LASTEXITCODE -ne 0) {
+    Write-Output "SIGNTOOL_SESSION0 $LASTEXITCODE"
+    $userPassword = -join ((48..57 + 65..90 + 97..122) | Get-Random -Count 20 | ForEach-Object { [char]$_ })
+    $userSecure = ConvertTo-SecureString $userPassword -AsPlainText -Force
+    $existing = Get-LocalUser -Name "convertshot" -ErrorAction SilentlyContinue
+    if ($existing) { Remove-LocalUser -Name "convertshot" }
+    New-LocalUser -Name "convertshot" -Password $userSecure -PasswordNeverExpires -UserMayNotChangePassword | Out-Null
+    Add-LocalGroupMember -Group "Administrators" -Member "convertshot"
+    & icacls.exe $build /grant "convertshot:(OI)(CI)(M)" | Out-Null
+    & icacls.exe (Split-Path $signtool.FullName) /grant "convertshot:(OI)(CI)(RX)" | Out-Null
+    $logDir = Join-Path $repo "proof-out"
+    New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+    $signed = [PackageSigner]::SignAsUser($signtool.FullName, $sharedPfx, $msix, $password, "$env:COMPUTERNAME\convertshot", $userPassword, $logDir)
+    $errLog = Join-Path $logDir "signtool.err"
+    if (Test-Path $errLog) { Get-Content $errLog | ForEach-Object { Write-Output "SIGNTOOL_ERR $_" } }
+    if ($signed -ne 0) { throw "signtool failed as convertshot exit $signed" }
+  }
   Write-Output "MSIX_SIGNED"
 } finally {
   if (Test-Path $pfx) { Remove-Item -Force $pfx }
   if (Test-Path $cer) { Remove-Item -Force $cer }
+  $sharedPfx = Join-Path $build "throwaway.pfx"
+  if (Test-Path $sharedPfx) { Remove-Item -Force $sharedPfx }
 }
 
 Add-AppxPackage -Path $msix -ForceUpdateFromAnyVersion
