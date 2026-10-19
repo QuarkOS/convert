@@ -4,6 +4,7 @@ import { FormatCatalog } from "../../core/src/format-catalog.ts";
 import { FormatGraph } from "../../core/src/format-graph.ts";
 import { FileDownload } from "./files.ts";
 import { PopupEngines } from "./popup-engines.ts";
+import { PopupResult } from "./popup-result.ts";
 import { ExtensionSettings } from "./settings.ts";
 
 class Popup {
@@ -52,9 +53,17 @@ class Popup {
     const filename = Popup.required<HTMLElement>("#filename");
     const targets = Popup.required<HTMLElement>("#targets");
     const status = Popup.required<HTMLElement>("#status");
+    const success = Popup.required<HTMLElement>("#success");
+    const drop = Popup.required<HTMLElement>("#drop");
+    const prompt = Popup.required<HTMLElement>("#prompt");
+    success.hidden = true;
+    drop.classList.remove("again");
+    prompt.textContent = "Drop a file, or choose one.";
+    filename.hidden = false;
+    targets.hidden = false;
     filename.textContent = file.name;
     targets.replaceChildren();
-    status.classList.remove("error");
+    status.classList.remove("error", "done");
     const from = FormatCatalog.fromFilename(file.name);
     if (!from) {
       status.textContent = "Convert does not recognize that file type.";
@@ -72,8 +81,12 @@ class Popup {
       const button = document.createElement("button");
       button.type = "button";
       button.dataset.target = to;
+      button.setAttribute("aria-pressed", "false");
       button.textContent = `.${FormatCatalog.extension(to)}`;
       button.addEventListener("click", () => {
+        for (const other of targets.querySelectorAll("button")) {
+          other.setAttribute("aria-pressed", other === button ? "true" : "false");
+        }
         void Popup.convert(file, from, to, button);
       });
       targets.append(button);
@@ -97,8 +110,23 @@ class Popup {
     const name = FormatCatalog.rename(file.name, to);
     FileDownload.save(name, result.bytes, FormatCatalog.mediaType(to));
     const elapsed = Math.round(performance.now() - started);
+    const place = PopupResult.place();
+    const route = PopupResult.route(file.name, name);
+    const line = PopupResult.line(name, elapsed, place);
+    Popup.required<HTMLElement>("#success-from").textContent = route.source;
+    Popup.required<HTMLElement>("#success-to").textContent = route.output;
+    Popup.required<HTMLElement>("#success-format").textContent = `.${FormatCatalog.extension(to)}`;
+    Popup.required<HTMLElement>("#success-line").textContent = line;
+    Popup.required<HTMLElement>("#success").hidden = false;
+    Popup.required<HTMLElement>("#filename").hidden = true;
+    Popup.required<HTMLElement>("#targets").hidden = true;
+    const drop = Popup.required<HTMLElement>("#drop");
+    drop.classList.add("again");
+    Popup.required<HTMLElement>("#prompt").textContent = "Convert another";
     status.dataset.elapsed = String(elapsed);
-    status.textContent = `Saved ${name} in ${elapsed} ms.`;
+    status.dataset.place = place;
+    status.textContent = line;
+    status.classList.add("done");
   }
 
   private static async activeOrigin(): Promise<string | null> {
