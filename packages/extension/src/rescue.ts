@@ -133,12 +133,11 @@ export class RescuePolicy {
     const first = targets[0];
     if (!first) return RescuePolicy.empty(from);
     const label = `.${FormatCatalog.extension(from)}`;
-    const next = `.${FormatCatalog.extension(first)}`;
     return {
       show: true,
       from,
       targets,
-      message: `This site doesn't accept ${label}, convert to ${next}?`,
+      message: `This site doesn't accept ${label}. Convert to:`,
     };
   }
 }

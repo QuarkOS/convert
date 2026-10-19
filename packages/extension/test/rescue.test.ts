@@ -38,7 +38,8 @@ test("accept fixture offers only jpeg and png for a webp", () => {
   });
   assert.equal(decision.show, true);
   assert.deepEqual(decision.targets, ["jpg", "png"]);
-  assert.match(decision.message, /doesn't accept \.webp, convert to \.jpg/);
+  assert.equal(decision.message, "This site doesn't accept .webp. Convert to:");
+  assert.equal(decision.message.includes(".jpg"), false);
 });
 
 test("rejection fixture toast follows the alert text", () => {

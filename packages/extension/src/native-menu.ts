@@ -10,10 +10,9 @@ export type NativeMenuItem = {
 
 export class NativeMenu {
   static readonly parentId = "convert-to";
-  static readonly mark = "➜";
 
   static title(): string {
-    return `${NativeMenu.mark} Convert to`;
+    return "Convert to";
   }
 
   static install(): void {

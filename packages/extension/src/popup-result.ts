@@ -1,3 +1,9 @@
+export class PopupChrome {
+  static apply(view: "idle" | "success", body: HTMLElement): void {
+    body.dataset.view = view;
+  }
+}
+
 export class PopupResult {
   static place(): string {
     return "Downloads";

@@ -2,9 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { NativeMenu } from "../src/native-menu.ts";
 
-test("the context menu carries the convert mark", () => {
-  assert.equal(NativeMenu.title(), "➜ Convert to");
-  assert.equal(NativeMenu.title().includes(NativeMenu.mark), true);
+test("the context menu label leaves the arrow to the submenu chevron", () => {
+  assert.equal(NativeMenu.title(), "Convert to");
+  assert.equal(NativeMenu.title().includes("➜"), false);
+  assert.equal(NativeMenu.title().includes("→"), false);
 });
 
 test("the native menu offers jpeg for a png address and skips heic", () => {
