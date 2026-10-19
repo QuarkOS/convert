@@ -1,0 +1,17 @@
+{
+  "name": "convert",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "npm test -w @convert/core",
+    "typecheck": "npm run typecheck -w @convert/core",
+    "lint": "npm run lint -w @convert/core",
+    "fixtures": "npm run fixtures -w @convert/core",
+    "matrix": "npm run matrix -w @convert/core"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

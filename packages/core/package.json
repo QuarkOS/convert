@@ -1,0 +1,32 @@
+{
+  "name": "@convert/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./node": "./src/node.ts"
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --test --test-timeout 180000 test/*.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "fixtures": "node --experimental-strip-types scripts/make-fixtures.ts",
+    "matrix": "node --experimental-strip-types scripts/print-matrix.ts"
+  },
+  "dependencies": {
+    "exceljs": "4.4.0",
+    "fast-xml-parser": "4.5.1",
+    "heic-decode": "2.1.0",
+    "jszip": "3.10.1",
+    "pdf-lib": "1.17.1",
+    "pdfjs-dist": "4.8.69",
+    "sharp": "0.34.4",
+    "smol-toml": "1.3.1",
+    "yaml": "2.6.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.3",
+    "typescript": "5.8.3"
+  }
+}
