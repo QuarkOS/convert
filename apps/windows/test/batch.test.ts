@@ -88,6 +88,25 @@ test("the msix script uses the nuget build tools and does not submit", async () 
   assert.match(cert, /IdAes256Cbc/);
 });
 
+test("prove-ship uses the logged-on session and does not invent one", async () => {
+  const script = await readFile(path.join(root, "apps/windows/prove-ship.ps1"), "utf8");
+  const capture = await readFile(path.join(root, "apps/windows/desktop-capture.ps1"), "utf8");
+  assert.match(script, /class InteractiveSession/);
+  assert.match(script, /register-menu\.ps1/);
+  assert.match(script, /desktop-capture\.ps1/);
+  assert.match(script, /pack-msix\.ps1/);
+  assert.match(script, /-Sign/);
+  assert.match(script, /SCREENSHOT/);
+  assert.match(script, /Get-AppxPackage Quack\.Convert/);
+  assert.equal(script.includes("convertshot"), false);
+  assert.equal(script.includes("mstsc"), false);
+  assert.equal(script.includes("fDenyTSConnections"), false);
+  assert.equal(script.includes("LoadUserProfile"), false);
+  assert.equal(script.includes("New-LocalUser"), false);
+  assert.equal(capture.includes("C:\\convertwork"), false);
+  assert.equal(capture.includes("convertshot"), false);
+});
+
 test("the package manifest names Convert and is not a store submission", async () => {
   const xml = await readFile(manifest, "utf8");
   assert.match(xml, /Name="Quack.Convert"/);

@@ -58,3 +58,11 @@ On a Windows 11 PC, pack and sideload with the NuGet build tools. The script dow
 ```powershell
 powershell -ExecutionPolicy Bypass -File apps/windows/pack-msix.ps1 -Sign
 ```
+
+The Quark command for a Windows session that is already logged on is:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File apps/windows/prove-ship.ps1
+```
+
+That registers the Explorer Convert to cascade, captures the classic menu into `proof-out/explorer.png`, then runs `pack-msix.ps1 -Sign` as the same user. The log is `proof-out/ship.log`. It records the screenshot path and `Get-AppxPackage Quack.Convert`. A session that is not interactive stops before any of that.
