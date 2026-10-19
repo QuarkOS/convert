@@ -60,8 +60,8 @@ test("the explorer menu keeps an image source on image targets", () => {
   assert.equal(markdown.targets.includes("pdf"), true);
   assert.equal(markdown.targets.includes("mp3"), false);
   const written = BatchConvert.outputName("photo.png", "jpg");
-  assert.equal(written, "photo.jpg.jpg");
-  assert.notEqual(BatchConvert.shownName("photo.png"), BatchConvert.shownName(written));
+  assert.equal(written, "photo.jpg");
+  assert.equal(written.endsWith(".jpg.jpg"), false);
 });
 
 test("no selection is reported before any conversion", async () => {
