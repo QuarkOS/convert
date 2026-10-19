@@ -20,22 +20,11 @@ class ThrowawayCert {
       Copy-Item $found.FullName $dll -Force
     }
     $generator = Join-Path $tools "MemoryCert.exe"
-    & $csc /nologo /target:exe "/reference:$dll" "/out:$generator" (Join-Path $here "launcher\MemoryCert.cs")
-    if (-not (Test-Path $generator)) { throw "MemoryCert compile failed" }
+    $compile = & $csc /nologo /target:exe "/reference:$dll" "/out:$generator" (Join-Path $here "launcher\MemoryCert.cs") 2>&1 | Out-String
+    if (-not (Test-Path $generator)) { throw "MemoryCert compile failed $compile" }
     $subject = & $generator $path $password
     if (-not (Test-Path $path)) { throw "MemoryCert failed" }
     return [string]$subject
-  }
-}
-
-class PackageSigner {
-  static [int] SignAsUser([string]$signtool, [string]$pfx, [string]$msix, [string]$pfxPassword, [string]$account, [string]$userPassword, [string]$logDir) {
-    $secure = ConvertTo-SecureString $userPassword -AsPlainText -Force
-    $cred = New-Object System.Management.Automation.PSCredential ($account, $secure)
-    $outLog = Join-Path $logDir "signtool.out"
-    $errLog = Join-Path $logDir "signtool.err"
-    $proc = Start-Process -FilePath $signtool -ArgumentList @("sign", "/fd", "SHA256", "/f", $pfx, "/p", $pfxPassword, $msix) -Credential $cred -LoadUserProfile -Wait -PassThru -WindowStyle Hidden -RedirectStandardOutput $outLog -RedirectStandardError $errLog
-    return [int]$proc.ExitCode
   }
 }
 
@@ -93,6 +82,8 @@ if (-not $Sign) { exit 0 }
 $pfx = Join-Path $env:TEMP "convert-throwaway.pfx"
 $cer = Join-Path $env:TEMP "convert-throwaway.cer"
 $password = -join ((48..57 + 65..90 + 97..122) | Get-Random -Count 24 | ForEach-Object { [char]$_ })
+$signOut = Join-Path $env:TEMP "signtool.out"
+$signErr = Join-Path $env:TEMP "signtool.err"
 try {
   $subject = [ThrowawayCert]::WritePfx($pfx, $password, $repo, $here, $csc)
   Write-Output "CERT_MODE bouncycastle"
@@ -111,34 +102,39 @@ try {
   New-ItemProperty -Path $unlock -Name "AllowAllTrustedApps" -Value 1 -PropertyType DWord -Force | Out-Null
   New-ItemProperty -Path $unlock -Name "AllowDevelopmentWithoutDevLicense" -Value 1 -PropertyType DWord -Force | Out-Null
 
-  $sharedPfx = Join-Path $build "throwaway.pfx"
-  Copy-Item $pfx $sharedPfx -Force
-  & $signtool.FullName sign /fd SHA256 /f $sharedPfx /p $password $msix
-  if ($LASTEXITCODE -ne 0) {
-    Write-Output "SIGNTOOL_SESSION0 $LASTEXITCODE"
-    $userPassword = -join ((48..57 + 65..90 + 97..122) | Get-Random -Count 20 | ForEach-Object { [char]$_ })
-    $userSecure = ConvertTo-SecureString $userPassword -AsPlainText -Force
-    $existing = Get-LocalUser -Name "convertshot" -ErrorAction SilentlyContinue
-    if ($existing) { Remove-LocalUser -Name "convertshot" }
-    New-LocalUser -Name "convertshot" -Password $userSecure -PasswordNeverExpires -UserMayNotChangePassword | Out-Null
-    Add-LocalGroupMember -Group "Administrators" -Member "convertshot"
-    & icacls.exe $build /grant "convertshot:(OI)(CI)(M)" | Out-Null
-    & icacls.exe (Split-Path $signtool.FullName) /grant "convertshot:(OI)(CI)(RX)" | Out-Null
-    $logDir = Join-Path $repo "proof-out"
-    New-Item -ItemType Directory -Force -Path $logDir | Out-Null
-    $signed = [PackageSigner]::SignAsUser($signtool.FullName, $sharedPfx, $msix, $password, "$env:COMPUTERNAME\convertshot", $userPassword, $logDir)
-    $errLog = Join-Path $logDir "signtool.err"
-    if (Test-Path $errLog) { Get-Content $errLog | ForEach-Object { Write-Output "SIGNTOOL_ERR $_" } }
-    if ($signed -ne 0) { throw "signtool failed as convertshot exit $signed" }
+  $manifest = Get-Content (Join-Path $here "AppxManifest.xml") -Raw
+  if ($manifest -match 'Publisher="([^"]+)"') { Write-Output "MANIFEST_PUBLISHER $($Matches[1])" }
+  foreach ($log in @($signOut, $signErr)) { if (Test-Path $log) { Remove-Item -Force $log } }
+  $proc = Start-Process -FilePath $signtool.FullName -ArgumentList @("sign", "/fd", "SHA256", "/f", $pfx, "/p", $password, $msix) -Wait -PassThru -WindowStyle Hidden -RedirectStandardOutput $signOut -RedirectStandardError $signErr
+  if ($proc.ExitCode -ne 0) {
+    foreach ($log in @($signOut, $signErr)) {
+      if (Test-Path $log) {
+        Get-Content $log | ForEach-Object {
+          if ($_ -notlike "*$password*") { Write-Output $_ }
+        }
+      }
+    }
+    throw "signtool failed"
   }
   Write-Output "MSIX_SIGNED"
 } finally {
-  if (Test-Path $pfx) { Remove-Item -Force $pfx }
-  if (Test-Path $cer) { Remove-Item -Force $cer }
-  $sharedPfx = Join-Path $build "throwaway.pfx"
-  if (Test-Path $sharedPfx) { Remove-Item -Force $sharedPfx }
+  foreach ($item in @($pfx, $cer, $signOut, $signErr)) {
+    if (Test-Path $item) { Remove-Item -Force $item }
+  }
 }
 
-Add-AppxPackage -Path $msix -ForceUpdateFromAnyVersion
-Write-Output "APPX_INSTALLED"
-Get-AppxPackage Quack.Convert | Format-List Name, PackageFullName, Version, Status, Publisher, InstallLocation, SignatureKind, IsFramework
+try {
+  Add-AppxPackage -Path $msix -ForceUpdateFromAnyVersion -ErrorAction Stop
+  Write-Output "APPX_INSTALLED"
+} catch {
+  Write-Output "APPX_ERROR $($_.Exception.Message)"
+  $inner = $_.Exception.InnerException
+  while ($inner) {
+    Write-Output "APPX_INNER $($inner.Message)"
+    $inner = $inner.InnerException
+  }
+  exit 1
+}
+$pkg = Get-AppxPackage Quack.Convert | Format-List Name, PackageFullName, Version, Status, Publisher, InstallLocation, SignatureKind, IsFramework | Out-String
+Write-Output "APPX_PACKAGE"
+Write-Output $pkg

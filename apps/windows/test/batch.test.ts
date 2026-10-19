@@ -66,6 +66,15 @@ test("the msix script uses the nuget build tools and does not submit", async () 
   assert.match(script, /class ThrowawayCert/);
   assert.match(script, /BouncyCastle\.Cryptography\.dll/);
   assert.equal(script.includes("PartnerCenter"), false);
+  assert.equal(script.includes("convertshot"), false);
+  assert.equal(script.includes("LoadUserProfile"), false);
+  assert.equal(script.includes("/debug"), false);
+  const cert = await readFile(path.join(root, "apps/windows/launcher/MemoryCert.cs"), "utf8");
+  assert.match(cert, /BasicConstraints\(false\)/);
+  assert.match(cert, /KeyUsage\.DigitalSignature/);
+  assert.match(cert, /id_kp_codeSigning/);
+  assert.match(cert, /Pkcs9AtLocalKeyID/);
+  assert.match(cert, /IdAes256Cbc/);
 });
 
 test("the package manifest names Convert and is not a store submission", async () => {
