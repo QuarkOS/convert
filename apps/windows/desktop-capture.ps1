@@ -1,5 +1,13 @@
+param(
+  [string]$Repo
+)
+
 $ErrorActionPreference = "Continue"
-$repo = "C:\convertwork"
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+if ([string]::IsNullOrWhiteSpace($Repo)) {
+  $Repo = (Resolve-Path (Join-Path $here "..\..")).Path
+}
+$repo = $Repo
 $out = Join-Path $repo "proof-out"
 New-Item -ItemType Directory -Force -Path $out | Out-Null
 $log = Join-Path $out "desktop.log"
@@ -144,7 +152,7 @@ try {
   New-Item -ItemType Directory -Force -Path $files | Out-Null
   Copy-Item (Join-Path $repo "packages\core\fixtures\images\red.png") (Join-Path $files "red.png") -Force
   $png = Join-Path $files "red.png"
-  & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo "apps\windows\register-menu.ps1")
+  & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $here "register-menu.ps1")
   Log "REGISTER_EXIT $LASTEXITCODE"
 
   $opened = $false
@@ -188,4 +196,5 @@ try {
   $ok = Test-Path (Join-Path $out "explorer.png")
   Set-Content -Path (Join-Path $out "desktop.done") -Value $(if ($ok) { "SUCCESS" } else { "FAIL" })
   Log "DESKTOP_DONE $ok"
+  if (-not $ok) { exit 1 }
 }
