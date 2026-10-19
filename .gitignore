@@ -5,3 +5,4 @@ dist/
 .DS_Store
 apps/windows/build/
 packages/extension/dist/
+packages/extension/dist-firefox/

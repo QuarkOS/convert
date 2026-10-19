@@ -43,12 +43,17 @@ export class PdfEngine {
   private static async read(input: Uint8Array): Promise<string> {
     const copy = new Uint8Array(input.byteLength);
     copy.set(input);
-    const doc = await getDocument({ data: copy, disableWorker: true, verbosity: 0, disableFontFace: true }).promise;
+    const doc = await getDocument({
+      data: copy,
+      disableWorker: true,
+      verbosity: 0,
+      disableFontFace: true,
+    } as Parameters<typeof getDocument>[0]).promise;
     const lines: string[] = [];
     for (let number = 1; number <= doc.numPages; number += 1) {
       const page = await doc.getPage(number);
       const content = await page.getTextContent();
-      const text = content.items.map((item) => item.str ?? "").join("");
+      const text = content.items.map((item) => ("str" in item ? item.str : "")).join("");
       lines.push(text);
     }
     const joined = lines.join("\n").trim();
