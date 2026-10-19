@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Studio intake</title>
+    <style>
+      body { margin: 0; background: #efeae2; color: #1a1916; font: 16px/1.45 "Segoe UI", system-ui, sans-serif; }
+      main { max-width: 440px; margin: 48px auto; padding: 24px; background: white; border-radius: 16px; }
+      h1 { margin: 0 0 8px; font-size: 24px; }
+      p { color: #5e584e; }
+      label { display: block; margin: 16px 0 6px; font-weight: 600; }
+      input { display: block; }
+      #status { min-height: 1.4em; color: #0f6b4c; font-weight: 600; }
+      img { margin-top: 18px; border-radius: 8px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Studio intake</h1>
+      <p id="hint">JPG or PNG only. The printer cannot take other pictures.</p>
+      <form id="intake">
+        <label for="photo">Portfolio still</label>
+        <input id="photo" name="photo" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" aria-describedby="hint" />
+        <p><button id="sample-webp" type="button">Use the sample WebP</button></p>
+        <p id="status" role="status"></p>
+      </form>
+      <img id="sample" alt="Red sample" src="/images/red.png" width="64" height="64" />
+    </main>
+    <script>
+      document.getElementById("sample-webp").addEventListener("click", async () => {
+        const response = await fetch("/images/red.webp");
+        const blob = await response.blob();
+        const file = new File([blob], "red.webp", { type: "image/webp" });
+        const transfer = new DataTransfer();
+        transfer.items.add(file);
+        const input = document.getElementById("photo");
+        input.files = transfer.files;
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      document.getElementById("photo").addEventListener("change", (event) => {
+        const file = event.target.files && event.target.files[0];
+        const status = document.getElementById("status");
+        if (!file) {
+          status.textContent = "No file";
+          return;
+        }
+        const ok = /\.(jpe?g|png)$/i.test(file.name) || file.type === "image/jpeg" || file.type === "image/png";
+        status.textContent = ok ? "Accepted " + file.name + " " + file.type : "Rejected " + file.name;
+      });
+    </script>
+  </body>
+</html>

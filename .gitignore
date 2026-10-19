@@ -10,3 +10,4 @@ apps/windows/build/
 /tools/
 /proof-out/
 packages/extension/dist/
+packages/extension/dist-firefox/

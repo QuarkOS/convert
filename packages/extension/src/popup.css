@@ -1,0 +1,97 @@
+:root {
+  color: #1a1916;
+  background: #f6f3ec;
+  font: 14px/1.4 "Segoe UI", system-ui, sans-serif;
+}
+
+body {
+  width: 320px;
+  margin: 0;
+  padding: 16px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: -0.03em;
+}
+
+.top p {
+  margin: 2px 0 0;
+  color: #5e584e;
+}
+
+.switch {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 12px;
+}
+
+.switch[hidden] {
+  display: none;
+}
+
+.switch input {
+  margin-top: 2px;
+}
+
+.drop {
+  display: grid;
+  place-items: center;
+  min-height: 92px;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1.5px dashed #c9c0b0;
+  border-radius: 12px;
+  background: #fffdf8;
+  text-align: center;
+  color: #5e584e;
+  cursor: pointer;
+}
+
+.drop.hot {
+  border-color: #0f6b4c;
+  background: #e7f3ee;
+}
+
+.drop input {
+  display: none;
+}
+
+#filename {
+  margin: 10px 0 0;
+  font-weight: 600;
+}
+
+.targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.targets button {
+  border: 1px solid #d9d1c3;
+  border-radius: 999px;
+  background: white;
+  color: #1a1916;
+  padding: 6px 10px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.targets button:hover {
+  border-color: #0f6b4c;
+  color: #0f6b4c;
+}
+
+#status {
+  min-height: 1.2em;
+  margin: 12px 0 0;
+  color: #3d4a43;
+}
+
+#status.error {
+  color: #8d2d2d;
+}

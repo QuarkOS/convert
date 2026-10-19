@@ -6,9 +6,9 @@
     "apps/*"
   ],
   "scripts": {
-    "test": "npm test -w @convert/core && npm test -w @convert/windows",
-    "typecheck": "npm run typecheck -w @convert/core && npm run typecheck -w @convert/windows",
-    "lint": "npm run lint -w @convert/core && npm run lint -w @convert/windows",
+    "test": "npm test -w @convert/core && npm test -w @convert/windows && npm test -w @convert/extension",
+    "typecheck": "npm run typecheck -w @convert/core && npm run typecheck -w @convert/windows && npm run typecheck -w @convert/extension",
+    "lint": "npm run lint -w @convert/core && npm run lint -w @convert/windows && npm run lint -w @convert/extension",
     "fixtures": "npm run fixtures -w @convert/core",
     "matrix": "npm run matrix -w @convert/core"
   },

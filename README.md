@@ -2,7 +2,7 @@
 
 Convert turns a file you already have into another type a program will accept. The interaction is a right-click menu, Convert to, that lists only the types this file can become.
 
-This repository holds the shared conversion core and the Windows app. Both call the same graph. The browser extension lives on its own branch.
+This repository holds the shared conversion core, a Manifest V3 browser extension, and the Windows app. All three call the same graph.
 
 ## Run the tests
 
@@ -20,6 +20,22 @@ Fixture files live under `packages/core/fixtures`. `npm run fixtures -w @convert
 ## Layout
 
 `packages/core` is the library. `FormatGraph` is the list of legal conversions. `ConversionJob` walks a path, including a chain when no engine converts the pair in one step. Node hosts load engines from `@convert/core/node`.
+
+## Browser extension
+
+`packages/extension` is a Manifest V3 popup and content script. It converts on the device. Image targets use the browser canvas. Documents, PDF, spreadsheets, and data use the same pure-JavaScript engines as the core. Audio, video, HEIC, and ffmpeg are not in the extension graph.
+
+```bash
+npm run build -w @convert/extension
+```
+
+Load `packages/extension/dist` as an unpacked extension in Chrome. Fixture pages, one with an `accept` list and one that rejects in script, are served with:
+
+```bash
+npm run serve -w @convert/extension
+```
+
+That listens on `http://127.0.0.1:43127/accept.html`. The store listing draft is `docs/store-listings/extension.md`. It is a draft. Nothing here is published to a browser store.
 
 ## Windows
 
