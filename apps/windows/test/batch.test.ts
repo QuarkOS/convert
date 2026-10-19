@@ -64,7 +64,7 @@ test("the msix script uses the nuget build tools and does not submit", async () 
   assert.match(script, /makeappx\.exe/);
   assert.match(script, /signtool\.exe/);
   assert.match(script, /class ThrowawayCert/);
-  assert.match(script, /BouncyCastle\.Crypto\.dll/);
+  assert.match(script, /BouncyCastle\.Cryptography\.dll/);
   assert.equal(script.includes("PartnerCenter"), false);
 });
 

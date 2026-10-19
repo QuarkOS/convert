@@ -5,15 +5,18 @@ param(
 class ThrowawayCert {
   static [string] WritePfx([string]$path, [string]$password, [string]$repo, [string]$here, [string]$csc) {
     $tools = Join-Path $repo "tools\bouncycastle"
-    $dll = Join-Path $tools "BouncyCastle.Crypto.dll"
+    $dll = Join-Path $tools "BouncyCastle.Cryptography.dll"
     if (-not (Test-Path $dll)) {
       New-Item -ItemType Directory -Force -Path $tools | Out-Null
-      $nupkg = Join-Path $tools "bouncycastle.1.8.9.nupkg"
-      Invoke-WebRequest -Uri "https://api.nuget.org/v3-flatcontainer/bouncycastle/1.8.9/bouncycastle.1.8.9.nupkg" -OutFile $nupkg -UseBasicParsing
+      $nupkg = Join-Path $tools "bouncycastle.cryptography.2.4.0.nupkg"
+      Invoke-WebRequest -Uri "https://api.nuget.org/v3-flatcontainer/bouncycastle.cryptography/2.4.0/bouncycastle.cryptography.2.4.0.nupkg" -OutFile $nupkg -UseBasicParsing
       Copy-Item $nupkg "$nupkg.zip" -Force
       Expand-Archive -Path "$nupkg.zip" -DestinationPath $tools -Force
-      $found = Get-ChildItem $tools -Recurse -Filter BouncyCastle.Crypto.dll | Select-Object -First 1
-      if (-not $found) { throw "BouncyCastle.Crypto.dll was not in the nupkg" }
+      $found = $null
+      foreach ($item in (Get-ChildItem $tools -Recurse -Filter BouncyCastle.Cryptography.dll)) {
+        if ($item.FullName -match "net461") { $found = $item; break }
+      }
+      if (-not $found) { throw "BouncyCastle.Cryptography.dll was not in the nupkg" }
       Copy-Item $found.FullName $dll -Force
     }
     $generator = Join-Path $tools "MemoryCert.exe"

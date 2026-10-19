@@ -29,8 +29,10 @@ public class MemoryCert {
     certGen.AddExtension(X509Extensions.KeyUsage, false, new KeyUsage(KeyUsage.DigitalSignature));
     certGen.AddExtension(X509Extensions.ExtendedKeyUsage, false, new ExtendedKeyUsage(KeyPurposeID.IdKPCodeSigning));
     X509Certificate cert = certGen.Generate(new Asn1SignatureFactory("SHA256WITHRSA", pair.Private, random));
-    Pkcs12Store store = new Pkcs12Store();
-    store.SetKeyEntry("convert", new AsymmetricKeyEntry(pair.Private), new X509CertificateEntry[] { new X509CertificateEntry(cert) });
+    Pkcs12Store store = new Pkcs12StoreBuilder().Build();
+    X509CertificateEntry entry = new X509CertificateEntry(cert);
+    store.SetCertificateEntry("convert", entry);
+    store.SetKeyEntry("convert", new AsymmetricKeyEntry(pair.Private), new X509CertificateEntry[] { entry });
     using (FileStream stream = File.Create(path)) {
       store.Save(stream, password.ToCharArray(), random);
     }
