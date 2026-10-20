@@ -14,18 +14,18 @@ const PANEL_CSS = `
   .panel {
     position: fixed;
     z-index: 2147483647;
-    width: min(280px, calc(100vw - 16px));
-    padding: 12px;
+    width: min(240px, calc(100vw - 16px));
+    padding: 10px;
     border: 1px solid #d9d1c3;
-    border-radius: 12px;
+    border-radius: 10px;
     background: #fffdf8;
     color: #1a1916;
     box-shadow: 0 10px 30px rgba(40, 32, 20, 0.16);
     font: 13px/1.4 "Segoe UI", system-ui, sans-serif;
   }
-  h2 { margin: 0 0 6px; font-size: 13px; letter-spacing: 0.02em; }
+  h2 { margin: 0 0 4px; font-size: 13px; letter-spacing: 0.02em; }
   p { margin: 0; }
-  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   button {
     font: inherit;
     cursor: pointer;
@@ -35,27 +35,27 @@ const PANEL_CSS = `
     border-radius: 999px;
     background: #143d32;
     color: #f6f3ec;
-    padding: 8px 12px;
+    padding: 6px 11px;
   }
   button.outline {
     border: 1px solid #e4ddd2;
     border-radius: 999px;
     background: transparent;
     color: #8a8175;
-    padding: 8px 12px;
+    padding: 6px 11px;
   }
   button.secondary {
     display: block;
-    margin-top: 12px;
+    margin-top: 8px;
     border: 1px solid #c9c0b0;
     border-radius: 999px;
     background: #fffdf8;
     color: #1a1916;
-    padding: 8px 12px;
+    padding: 6px 11px;
   }
   button.link {
     display: block;
-    margin-top: 8px;
+    margin-top: 6px;
     border: 0;
     background: transparent;
     color: #8a8175;
@@ -332,7 +332,7 @@ class PageRescue {
     style.textContent = PANEL_CSS;
     const panel = document.createElement("div");
     panel.className = "panel";
-    panel.style.left = `${Math.max(8, Math.min(x, window.innerWidth - 296))}px`;
+    panel.style.left = `${Math.max(8, Math.min(x, window.innerWidth - 256))}px`;
     panel.style.top = `${Math.max(8, Math.min(y, window.innerHeight - 160))}px`;
     shadow.append(style, panel);
     document.documentElement.append(host);
