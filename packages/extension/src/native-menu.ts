@@ -11,6 +11,10 @@ export type NativeMenuItem = {
 export class NativeMenu {
   static readonly parentId = "convert-to";
 
+  static title(): string {
+    return "Convert to";
+  }
+
   static install(): void {
     chrome.runtime.onInstalled.addListener(() => {
       void NativeMenu.rebuild();
@@ -63,7 +67,7 @@ export class NativeMenu {
     const patterns = [...new Set(items.flatMap((item) => item.patterns))];
     chrome.contextMenus.create({
       id: NativeMenu.parentId,
-      title: "Convert to",
+      title: NativeMenu.title(),
       contexts: ["image", "link"],
       targetUrlPatterns: patterns,
     });

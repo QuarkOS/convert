@@ -7,6 +7,7 @@ import { ImageEngines } from "./image-engines.ts";
 import type { RescueDecision } from "./rescue.ts";
 import { RescuePolicy } from "./rescue.ts";
 import { ExtensionSettings, type ExtensionPrefs } from "./settings.ts";
+import { ToastChrome } from "./toast-chrome.ts";
 
 const PANEL_CSS = `
   :host { all: initial; }
@@ -24,18 +25,44 @@ const PANEL_CSS = `
   }
   h2 { margin: 0 0 6px; font-size: 13px; letter-spacing: 0.02em; }
   p { margin: 0; }
-  .actions, .row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
   button {
-    border: 1px solid #d9d1c3;
-    border-radius: 999px;
-    background: white;
-    color: #1a1916;
-    padding: 5px 10px;
     font: inherit;
     cursor: pointer;
   }
-  button.primary { border-color: #0f6b4c; color: #0f6b4c; }
-  button.quiet { border: 0; background: transparent; color: #5e584e; padding-left: 0; }
+  button.filled {
+    border: 1px solid #143d32;
+    border-radius: 999px;
+    background: #143d32;
+    color: #f6f3ec;
+    padding: 8px 12px;
+  }
+  button.outline {
+    border: 1px solid #e4ddd2;
+    border-radius: 999px;
+    background: transparent;
+    color: #8a8175;
+    padding: 8px 12px;
+  }
+  button.secondary {
+    display: block;
+    margin-top: 12px;
+    border: 1px solid #c9c0b0;
+    border-radius: 999px;
+    background: #fffdf8;
+    color: #1a1916;
+    padding: 8px 12px;
+  }
+  button.link {
+    display: block;
+    margin-top: 8px;
+    border: 0;
+    background: transparent;
+    color: #8a8175;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
   .error { color: #8d2d2d; margin-top: 8px; }
 `;
 
@@ -169,7 +196,7 @@ class PageRescue {
     for (const to of decision.targets) {
       const button = document.createElement("button");
       button.type = "button";
-      button.className = "primary";
+      button.className = ToastChrome.formatClass(to, decision.targets);
       button.dataset.target = to;
       button.textContent = `.${FormatCatalog.extension(to)}`;
       button.addEventListener("click", () => {
@@ -177,13 +204,16 @@ class PageRescue {
       });
       actions.append(button);
     }
-    const row = document.createElement("div");
-    row.className = "row";
+    const dismiss = document.createElement("button");
+    dismiss.type = "button";
+    dismiss.className = ToastChrome.originalClass();
+    dismiss.textContent = "Use original";
+    dismiss.addEventListener("click", () => PageRescue.release(input, file));
     const mute = document.createElement("button");
     mute.type = "button";
-    mute.className = "quiet";
+    mute.className = ToastChrome.muteClass();
     mute.dataset.convertMute = "site";
-    mute.textContent = "Don't offer on this site";
+    mute.textContent = ToastChrome.muteLabel();
     mute.addEventListener("click", () => {
       void ExtensionSettings.setOrigin(location.origin, false).then(() => {
         PageRescue.#prefs = {
@@ -193,13 +223,7 @@ class PageRescue {
         PageRescue.release(input, file);
       });
     });
-    const dismiss = document.createElement("button");
-    dismiss.type = "button";
-    dismiss.className = "quiet";
-    dismiss.textContent = "Use original";
-    dismiss.addEventListener("click", () => PageRescue.release(input, file));
-    row.append(mute, dismiss);
-    panel.append(message, actions, row);
+    panel.append(message, actions, dismiss, mute);
   }
 
   private static showMenu(
@@ -219,7 +243,7 @@ class PageRescue {
     for (const to of targets) {
       const button = document.createElement("button");
       button.type = "button";
-      button.className = "primary";
+      button.className = ToastChrome.formatClass(to, targets);
       button.dataset.target = to;
       button.textContent = `.${FormatCatalog.extension(to)}`;
       button.addEventListener("click", () => {
