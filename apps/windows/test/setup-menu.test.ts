@@ -9,7 +9,7 @@ import { SetupMenu } from "../src/setup-menu.ts";
 
 const windows = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 
-test("the installer menu keeps an image on image targets and quotes one command", () => {
+test("the installer menu keeps an image on image targets and quotes one command", async () => {
   const entries = ExplorerMenu.entries(NodeEngines.bundled());
   const install = SetupMenu.install(entries);
   const png = SetupMenu.block(install, "png");
@@ -25,6 +25,14 @@ test("the installer menu keeps an image on image targets and quotes one command"
   const uninstall = SetupMenu.uninstall(entries);
   assert.match(uninstall, /DeleteRegKey HKCU "Software\\Classes\\SystemFileAssociations\\\.png\\shell\\ConvertTo"/);
   assert.match(install, /\$\\"\$INSTDIR\\Convert\.cmd\$\\" --to jpg/);
+  assert.equal(install.includes("npm"), false);
+  const launcher = await readFile(path.join(windows, "Convert.cmd"), "utf8");
+  assert.match(launcher, /runtime\\node\.exe/);
+  assert.match(launcher, /apps\\windows\\host\.mjs/);
+  assert.equal(launcher.includes("npm"), false);
+  assert.equal(launcher.includes("where node"), false);
+  const windowScript = await readFile(path.join(windows, "window.ps1"), "utf8");
+  assert.match(windowScript, /runtime\\node\.exe/);
 });
 
 test("the release tree does not revive the remote desktop prove path", async () => {

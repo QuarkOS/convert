@@ -5,6 +5,9 @@ ManifestDPIAware true
 
 !define APP "Convert"
 !define VER "1.0.0"
+!ifndef PAYLOAD
+  !define PAYLOAD "setup-payload"
+!endif
 
 Name "${APP}"
 OutFile "Convert-Setup-${VER}.exe"
@@ -26,7 +29,7 @@ UninstPage instfiles
 
 Section "Install"
   SetOutPath "$INSTDIR"
-  File /r "setup-payload\*.*"
+  File /r "${PAYLOAD}\*.*"
   WriteRegStr HKCU "Software\Convert" "InstallDir" "$INSTDIR"
   WriteRegStr HKCU "Software\Convert" "Version" "${VER}"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Convert" "DisplayName" "Convert ${VER}"

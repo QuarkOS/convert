@@ -3,9 +3,21 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$node = (Get-Command node -ErrorAction SilentlyContinue).Source
-if (-not $node) { throw "node is not on PATH" }
-$hostScript = Join-Path $here "src\host.ts"
+$bundled = Join-Path $here "..\..\runtime\node.exe"
+if (Test-Path -LiteralPath $bundled) {
+  $node = (Resolve-Path -LiteralPath $bundled).Path
+} else {
+  $node = (Get-Command node -ErrorAction SilentlyContinue).Source
+}
+if (-not $node) { throw "Convert's runtime is missing" }
+$hostBuilt = Join-Path $here "host.mjs"
+if (Test-Path -LiteralPath $hostBuilt) {
+  $hostScript = $hostBuilt
+  $hostArgs = @("--disable-warning=ExperimentalWarning", $hostScript)
+} else {
+  $hostScript = Join-Path $here "src\host.ts"
+  $hostArgs = @("--disable-warning=ExperimentalWarning", "--experimental-strip-types", $hostScript)
+}
 $files = @($args | Where-Object { $_ -and (Test-Path -LiteralPath $_) })
 
 $form = New-Object System.Windows.Forms.Form
@@ -31,7 +43,7 @@ foreach ($file in $files) { [void]$list.Items.Add([IO.Path]::GetFileName($file))
 $form.Controls.Add($list)
 
 $errFile = Join-Path $env:TEMP "convert-targets-err.txt"
-$targetsJson = & $node --disable-warning=ExperimentalWarning --experimental-strip-types $hostScript --targets @files 2>$errFile
+$targetsJson = & $node @hostArgs --targets @files 2>$errFile
 if ($LASTEXITCODE -ne 0) { throw (Get-Content -Raw $errFile) }
 $targetText = ($targetsJson | Out-String).Trim()
 $targetStart = $targetText.IndexOf("[")
@@ -61,7 +73,7 @@ $button.Location = New-Object System.Drawing.Point(200, 158)
 $button.Enabled = $picker.Items.Count -gt 0
 $button.Add_Click({
   $choice = $picker.SelectedItem.ToString().TrimStart(".")
-  $output = & $node --disable-warning=ExperimentalWarning --experimental-strip-types $hostScript --to $choice @files 2>&1
+  $output = & $node @hostArgs --to $choice @files 2>&1
   $status.Text = ($output | Select-Object -Last 4) -join " "
 })
 $form.Controls.Add($button)
