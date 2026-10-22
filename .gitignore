@@ -4,6 +4,10 @@ dist/
 *.log
 .DS_Store
 apps/windows/build/
+apps/windows/setup-payload/
+apps/windows/setup-menu-install.nsh
+apps/windows/setup-menu-uninstall.nsh
+apps/windows/Convert-Setup-*.exe
 *.msix
 *.pfx
 *.cer

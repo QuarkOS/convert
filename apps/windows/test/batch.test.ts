@@ -91,7 +91,7 @@ test("the msix script uses the nuget build tools and does not submit", async () 
 test("the package manifest names Convert and is not a store submission", async () => {
   const xml = await readFile(manifest, "utf8");
   assert.match(xml, /Name="Quack.Convert"/);
-  assert.match(xml, /Version="0.1.0.0"/);
+  assert.match(xml, /Version="1.0.0.0"/);
   assert.match(xml, /Publisher="CN=Convert"/);
   assert.equal(xml.includes("PartnerCenter"), false);
   assert.equal(xml.includes("store submission"), false);
