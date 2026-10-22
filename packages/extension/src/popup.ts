@@ -4,6 +4,7 @@ import { FormatCatalog } from "../../core/src/format-catalog.ts";
 import { FormatGraph } from "../../core/src/format-graph.ts";
 import { FileDownload } from "./files.ts";
 import { PopupEngines } from "./popup-engines.ts";
+import { PickerLaunch } from "./picker-launch.ts";
 import { PopupChrome, PopupResult } from "./popup-result.ts";
 import { ExtensionSettings } from "./settings.ts";
 
@@ -15,6 +16,8 @@ class Popup {
     const siteRow = Popup.required<HTMLElement>("#site-row");
     const drop = Popup.required<HTMLElement>("#drop");
     const picker = Popup.required<HTMLInputElement>("#file");
+    const surface = PickerLaunch.surface(location.search);
+    document.body.dataset.surface = surface;
     PopupChrome.apply("idle", document.body);
     const prefs = await ExtensionSettings.read();
     globalBox.checked = prefs.globalEnabled;
@@ -48,7 +51,18 @@ class Popup {
       const file = event.dataTransfer?.files?.[0];
       if (file) void Popup.showFile(file);
     });
-    drop.addEventListener("click", () => {
+    drop.addEventListener("click", (event) => {
+      if (surface === "popup") {
+        // A native file dialog steals focus and Chrome and Firefox close the popup, losing the file.
+        // Choosing a file therefore happens in a small extension window that stays open.
+        event.preventDefault();
+        if (drop.classList.contains("again")) {
+          Popup.presentIdle();
+          return;
+        }
+        void PickerLaunch.open(PickerLaunch.browserApi());
+        return;
+      }
       if (!drop.classList.contains("again")) return;
       Popup.presentIdle();
     });
